@@ -37,12 +37,26 @@ def get_service(service_id):
 
 @app.route("/services", methods=["POST"])
 def create_service():
-    data = request.get_json()
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return { "error": "Invalid data format" }, 400
+
+    name = data.get("name")
+    if not isinstance(name, str):
+        return { "error": "Invalid data format" }, 400
+
+    url = data["url"].strip()
+    if not isinstance(url, str):
+        return { "error": "Invalid data format" }, 400
+
+    if not name or not url:
+        return { "error": "Service name and url required" }, 400
 
     service = {
         "id": max((service["id"] for service in services), default = 0) + 1,
-        "name": data["name"],
-        "url": data["url"]
+        "name": name,
+        "url": url
     }
 
     services.append(service)
