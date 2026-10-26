@@ -20,6 +20,14 @@ def get_services():
         services = [dict(row) for row in rows]
         return services
 
+def get_service(service_id):
+    with closing(sqlite3.connect('data.db')) as connection:
+        connection.row_factory = sqlite3.Row
+        cursor = connection.execute("""SELECT id, name, url FROM services WHERE id = ?""", (service_id,))
+        row = cursor.fetchone()
+        service = dict(row)
+        return service if service else None
+
 def create_service(name: str, url: str):
     sql = """INSERT INTO services (name, url) VALUES (?, ?)"""
     with closing(sqlite3.connect('data.db')) as connection:

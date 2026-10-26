@@ -27,10 +27,7 @@ def get_services():
 
 @app.route('/services/<int:service_id>')
 def get_service(service_id):
-    service = next(
-        (service for service in services if service["id"] == service_id),
-        None
-    )
+    service = database.get_service(service_id)
 
     if service is None:
         return { "error": "Service not found" }, 404
