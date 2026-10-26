@@ -19,3 +19,4 @@ def get_services():
 
         services = [dict(row) for row in rows]
         return services
+

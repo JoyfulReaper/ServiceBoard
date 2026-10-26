@@ -1,8 +1,8 @@
 from flask import Flask, jsonify, request
-from database import initialize_database
+import database
 app = Flask(__name__)
 
-initialize_database()
+database.initialize_database()
 
 services = [
     {
@@ -23,7 +23,7 @@ def index():
 
 @app.route('/services')
 def get_services():
-    return jsonify(services)
+    return jsonify(database.get_services())
 
 @app.route('/services/<int:service_id>')
 def get_service(service_id):
