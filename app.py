@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
-
+from database import initialize_database
 app = Flask(__name__)
+
+initialize_database()
 
 services = [
     {
