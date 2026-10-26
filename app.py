@@ -46,12 +46,15 @@ def create_service():
     if not isinstance(name, str):
         return { "error": "Invalid data format" }, 400
 
-    url = data["url"].strip()
+    url = data.get("url")
     if not isinstance(url, str):
         return { "error": "Invalid data format" }, 400
 
     if not name or not url:
         return { "error": "Service name and url required" }, 400
+
+    name = name.strip()
+    url = url.strip()
 
     service = {
         "id": max((service["id"] for service in services), default = 0) + 1,
