@@ -25,8 +25,8 @@ def get_service(service_id):
         connection.row_factory = sqlite3.Row
         cursor = connection.execute("""SELECT id, name, url FROM services WHERE id = ?""", (service_id,))
         row = cursor.fetchone()
-        service = dict(row)
-        return service if service else None
+        service = dict(row) if row else None
+        return service
 
 def create_service(name: str, url: str):
     sql = """INSERT INTO services (name, url) VALUES (?, ?)"""
