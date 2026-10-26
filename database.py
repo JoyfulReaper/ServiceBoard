@@ -20,3 +20,17 @@ def get_services():
         services = [dict(row) for row in rows]
         return services
 
+def create_service(name: str, url: str):
+    sql = """INSERT INTO services (name, url) VALUES (?, ?)"""
+    with closing(sqlite3.connect('data.db')) as connection:
+        cursor = connection.execute(sql, (name, url))
+        service_id = cursor.lastrowid
+
+        service = {
+            'id': service_id,
+            'name': name,
+            'url': url
+        }
+
+        connection.commit()
+        return service

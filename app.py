@@ -58,12 +58,5 @@ def create_service():
     name = name.strip()
     url = url.strip()
 
-    service = {
-        "id": max((service["id"] for service in services), default = 0) + 1,
-        "name": name,
-        "url": url
-    }
-
-    services.append(service)
-
+    service = database.create_service(name, url)
     return jsonify(service), 201
