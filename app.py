@@ -4,19 +4,6 @@ app = Flask(__name__)
 
 database.initialize_database()
 
-services = [
-    {
-        "id": 1,
-        "name": "Packet Garden",
-        "url": "https://garden.kgivler.com"
-    },
-    {
-        "id": 2,
-        "name": "Random Steam Game",
-        "url": "https://randomsteam.kgivler.com"
-    }
-]
-
 @app.route('/')
 def index():
     return "ServiceBoard says Hello World"
