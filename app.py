@@ -44,3 +44,11 @@ def create_service():
 
     service = database.create_service(name, url)
     return jsonify(service), 201
+
+@app.route("/services/<int:service_id>", methods=["DELETE"])
+def delete_service(service_id):
+    deleted = database.delete_service(service_id)
+    if deleted:
+        return "", 204
+
+    return {"error": "Service not found"}, 404

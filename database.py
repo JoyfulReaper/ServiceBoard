@@ -42,3 +42,17 @@ def create_service(name: str, url: str):
 
         connection.commit()
         return service
+
+def delete_service(service_id):
+    deleted = False
+    with closing(sqlite3.connect('data.db')) as connection:
+        cursor = connection.execute("""DELETE FROM services WHERE id = ?""", (service_id,))
+        connection.commit()
+        if cursor.rowcount == 1:
+            deleted = True
+        elif cursor.rowcount > 1:
+            # Note: It should not be possible for the delete to affect multiple rows
+            # for this Query
+            raise ValueError("Affected multiple rows!")
+
+    return deleted
