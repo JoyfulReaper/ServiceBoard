@@ -1,17 +1,23 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect, render_template, session, url_for
 from .auth import require_api_key
 from . import database
 import os
 from datetime import timedelta
+from flask_wtf.csrf import CSRFProtect
+from werkzeug.security import check_password_hash
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ["SERVICEBOARD_SECRET_KEY"]
+
+app.config["ADMIN_PASSWORD_HASH"] = os.environ["SERVICEBOARD_ADMIN_PASSWORD_HASH"]
 
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SERVICEBOARD_ALLOW_INSECURE_COOKIES") != "1"
 
-app.config["PERMANET_SESSION_LIFETIME"] = timedelta(hours=8)
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
+
+csrf = CSRFProtect(app)
 
 database.initialize_database()
 
@@ -34,6 +40,7 @@ def get_service(service_id):
 
 @app.route("/services", methods=["POST"])
 @require_api_key
+@csrf.exempt
 def create_service():
     data = request.get_json(silent=True)
 
@@ -59,9 +66,38 @@ def create_service():
 
 @app.route("/services/<int:service_id>", methods=["DELETE"])
 @require_api_key
+@csrf.exempt
 def delete_service(service_id):
     deleted = database.delete_service(service_id)
     if deleted:
         return "", 204
 
     return {"error": "Service not found"}, 404
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("authenticated"):
+        return redirect(url_for("admin"))
+
+    error = None
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+
+        if check_password_hash(app.config["ADMIN_PASSWORD_HASH"], password):
+            session.clear()
+            session.permanent = True
+            session["authenticated"] = True
+
+            return redirect(url_for("admin"))
+
+        error = "Invalid password"
+
+    return render_template("login.html", error=error), 401 if error else 200
+
+@app.route("/admin")
+def admin():
+    if not session.get("authenticated"):
+        return redirect(url_for("login"))
+
+    return "Welcome to ServiceBoard Admin!"
