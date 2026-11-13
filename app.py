@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+from auth import require_api_key
 import database
 app = Flask(__name__)
 
@@ -22,6 +23,7 @@ def get_service(service_id):
     return jsonify(service)
 
 @app.route("/services", methods=["POST"])
+@require_api_key
 def create_service():
     data = request.get_json(silent=True)
 
@@ -46,6 +48,7 @@ def create_service():
     return jsonify(service), 201
 
 @app.route("/services/<int:service_id>", methods=["DELETE"])
+@require_api_key
 def delete_service(service_id):
     deleted = database.delete_service(service_id)
     if deleted:
