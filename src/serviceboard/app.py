@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, redirect, render_template, session, url_for
-from .auth import require_api_key, require_login
+from .auth import require_api_key, require_login, is_valid_api_key
 from . import database
 import os
 from datetime import timedelta
@@ -21,13 +21,48 @@ csrf = CSRFProtect(app)
 
 database.initialize_database()
 
+def public_service(service):
+    return {
+        "id": service["id"],
+        "name": service["name"],
+        "url": service["url"]
+    }
+
+def service_read_response(data):
+    authorization = request.headers.get("Authorization")
+
+    if authorization is None:
+        if isinstance(data, list):
+            data = [public_service(service) for service in data]
+        else:
+            data = public_service(data)
+    elif not is_valid_api_key():
+        return jsonify({"error": "Invalid API key"}), 401, {
+            "WWW-Authenticate": "Bearer"
+        }
+
+    response = jsonify(data)
+    response.headers["Cache-Control"] = "no-store"
+
+    return response
+
 @app.route('/')
 def index():
-    return "ServiceBoard says Hello World"
+    services = [
+        {
+            "name": service["name"],
+            "url": service["url"]
+        }
+        for service in database.get_services()
+    ]
+
+    return render_template("index.html", services=services)
 
 @app.route('/services')
 def get_services():
-    return jsonify(database.get_services())
+    services = database.get_services()
+
+    return service_read_response(services)
 
 @app.route('/services/<int:service_id>')
 def get_service(service_id):
@@ -36,7 +71,7 @@ def get_service(service_id):
     if service is None:
         return { "error": "Service not found" }, 404
 
-    return jsonify(service)
+    return service_read_response(service)
 
 @app.route("/services", methods=["POST"])
 @require_api_key

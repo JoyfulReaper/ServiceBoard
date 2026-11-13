@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ServiceBoard</title>
+</head>
+<body>
+    <h1>ServiceBoard</h1>
+
+    <p>Services hosted by Kyle Givler</p>
+
+    <h2>Available Services</h2>
+
+    {% if services %}
+        <ul>
+            {% for service in services %}
+                <li>
+                    <strong>{{ service["name"] }}</strong>
+                    <br>
+                    {{ service["url"] }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No services are currently listed.</p>
+    {% endif %}
+</body>
+</html>
