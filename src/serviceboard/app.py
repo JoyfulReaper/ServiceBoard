@@ -55,13 +55,29 @@ def create_service():
     if not isinstance(url, str):
         return { "error": "Invalid data format" }, 400
 
-    if not name or not url:
-        return { "error": "Service name and url required" }, 400
-
     name = name.strip()
     url = url.strip()
 
-    service = database.create_service(name, url)
+    if not name or not url:
+        return { "error": "Service name and url required" }, 400
+
+    optional_fields = {}
+
+    for field in ("host", "runtime_name", "runtime_version"):
+        value = data.get(field)
+
+        if value is not None and not isinstance(value, str):
+            return { "error": f"{field} must be a string or null"}, 400
+
+        if isinstance(value, str):
+            value = value.strip() or None
+
+        optional_fields[field] = value
+
+    if optional_fields["runtime_version"] and not optional_fields["runtime_name"]:
+        return { "error": "Runtime name required required when runtime version is provided" }, 400
+
+    service = database.create_service(name, url, **optional_fields)
     return jsonify(service), 201
 
 @app.route("/services/<int:service_id>", methods=["DELETE"])
@@ -98,7 +114,9 @@ def login():
 @app.route("/admin")
 @require_login
 def admin():
-    return render_template("admin.html")
+    services = database.get_services()
+
+    return render_template("admin.html", services=services)
 
 @app.route("/logout", methods=["POST"])
 @require_login

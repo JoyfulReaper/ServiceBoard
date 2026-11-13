@@ -15,5 +15,21 @@
 
         <button type="submit">Logout</button>
     </form>
+
+    <h2>Services</h2>
+
+    {% if services %}
+        <ul>
+            {% for service in services %}
+                <li>
+                    <strong>{{ service["name"] }}</strong>
+                    <br>
+                    {{ service["url"] }}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No services have been added yet.</p>
+    {% endif %}
 </body>
 </html>
