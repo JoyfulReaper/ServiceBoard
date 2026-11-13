@@ -1,6 +1,4 @@
 from flask import Flask, jsonify, request, redirect, render_template, session, url_for
-from wtforms.validators import optional
-
 from .auth import require_api_key, require_login
 from . import database
 import os
@@ -135,6 +133,36 @@ def delete_service(service_id):
         return "", 204
 
     return {"error": "Service not found"}, 404
+
+@app.route("/admin/services", methods=["POST"])
+@require_login
+def admin_create_service():
+    name = request.form.get("name", "").strip()
+    url = request.form.get("url", "").strip()
+
+    host = request.form.get("host", "").strip() or None
+    runtime_name = request.form.get("runtime_name", "").strip() or None
+    runtime_version = request.form.get("runtime_version", "").strip() or None
+
+    if not name or not url:
+        return render_template("admin.html",
+                               services=database.get_services(),
+                               error="Service name and URL are required"), 400
+
+    if runtime_version and not runtime_name:
+        return render_template("admin.html",
+                               services=database.get_services(),
+                               error="Runtime name is required when specifying a version"), 400
+
+    database.create_service(
+        name,
+        url,
+        host,
+        runtime_name,
+        runtime_version
+    )
+
+    return redirect(url_for("admin"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
