@@ -1,4 +1,6 @@
 from flask import Flask, jsonify, request, redirect, render_template, session, url_for
+from wtforms.validators import optional
+
 from .auth import require_api_key, require_login
 from . import database
 import os
@@ -75,10 +77,54 @@ def create_service():
         optional_fields[field] = value
 
     if optional_fields["runtime_version"] and not optional_fields["runtime_name"]:
-        return { "error": "Runtime name required required when runtime version is provided" }, 400
+        return { "error": "Runtime name required when runtime version is provided" }, 400
 
     service = database.create_service(name, url, **optional_fields)
     return jsonify(service), 201
+
+@app.route("/services/<int:service_id>", methods=["PUT"])
+@require_api_key
+@csrf.exempt
+def update_service(service_id):
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return { "error": "Invalid data format" }, 400
+
+    name = data.get("name")
+    url = data.get("url")
+
+    if not isinstance(name, str) or not isinstance(url, str):
+        return { "error": "Invalid data format" }, 400
+
+    name = name.strip()
+    url = url.strip()
+
+    if not name or not url:
+        return { "error": "Service name and url required" }, 400
+
+    optional_fields = {}
+    for field in ("host", "runtime_name", "runtime_version"):
+        value = data.get(field)
+
+        if value is not None and not isinstance(value, str):
+            return {"error": f"{field} must be a string or null"}, 400
+
+        if isinstance(value, str):
+            value = value.strip() or None
+
+        optional_fields[field] = value
+
+    if optional_fields["runtime_version"] and not optional_fields["runtime_name"]:
+        return {"error": "Runtime name required when runtime version is provided"}, 400
+
+    service = database.update_service(service_id, name, url, **optional_fields)
+
+    if service is None:
+        return {"error": "Service not found"}, 404
+
+    return jsonify(service)
+
 
 @app.route("/services/<int:service_id>", methods=["DELETE"])
 @require_api_key

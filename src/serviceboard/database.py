@@ -83,3 +83,22 @@ def delete_service(service_id):
             raise ValueError("Affected multiple rows!")
 
     return deleted
+
+def update_service(service_id: int, name: str, url: str,
+                   host: str | None = None, runtime_name: str | None = None,
+                   runtime_version: str | None = None):
+
+    sql = """
+        UPDATE services SET name = ?, url = ?, host = ?, runtime_name = ?, runtime_version = ?
+        WHERE id = ?
+    """
+
+    with closing(sqlite3.connect('data.db')) as connection:
+        cursor = connection.execute(sql,
+                                    (name, url, host, runtime_name, runtime_version, service_id))
+        connection.commit()
+
+        if cursor.rowcount == 0:
+            return None
+
+    return get_service(service_id)
