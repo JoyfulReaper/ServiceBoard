@@ -110,3 +110,18 @@ def test_database_migration(tmp_path, monkeypatch):
     assert service["host"] is None
     assert service["runtime_name"] is None
     assert service["runtime_version"] is None
+
+def test_database_initialization_preserves_data(isolated_database):
+    created = database.create_service(
+        "Persistent Service",
+        "https://example.com",
+        "Clanker",
+        "Microsoft.AspNetCore.App",
+        "10.0.15"
+    )
+
+    database.initialize_database()
+
+    retrieved = database.get_service(created["id"])
+
+    assert retrieved == created
