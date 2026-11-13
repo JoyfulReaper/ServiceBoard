@@ -1,7 +1,17 @@
 from flask import Flask, jsonify, request
-from auth import require_api_key
-import database
+from .auth import require_api_key
+from . import database
+import os
+from datetime import timedelta
+
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.environ["SERVICEBOARD_SECRET_KEY"]
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SERVICEBOARD_ALLOW_INSECURE_COOKIES") != "1"
+
+app.config["PERMANET_SESSION_LIFETIME"] = timedelta(hours=8)
 
 database.initialize_database()
 
