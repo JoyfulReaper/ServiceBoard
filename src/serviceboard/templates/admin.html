@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ServiceBoard Admin</title>
+</head>
+<body>
+    <h1>ServiceBoard Administration</h1>
+
+    <p>You are logged in!</p>
+
+    <form method="POST" action="{{ url_for('logout') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <button type="submit">Logout</button>
+    </form>
+</body>
+</html>

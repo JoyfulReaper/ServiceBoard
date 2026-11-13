@@ -1,7 +1,7 @@
 import hmac
 import os
 from functools import wraps
-from flask import jsonify, request
+from flask import jsonify, request, session, redirect, url_for
 
 API_KEY = os.environ.get("SERVICEBOARD_API_KEY")
 
@@ -18,6 +18,16 @@ def require_api_key(func):
             return jsonify({"error": "Unauthorized"}), 401, {
                 "WWW-Authenticate": "Bearer"
             }
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+def require_login(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not session.get("authenticated"):
+            return redirect(url_for("login"))
 
         return func(*args, **kwargs)
 

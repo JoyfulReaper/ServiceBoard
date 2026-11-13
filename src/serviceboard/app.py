@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, redirect, render_template, session, url_for
-from .auth import require_api_key
+from .auth import require_api_key, require_login
 from . import database
 import os
 from datetime import timedelta
@@ -96,8 +96,13 @@ def login():
     return render_template("login.html", error=error), 401 if error else 200
 
 @app.route("/admin")
+@require_login
 def admin():
-    if not session.get("authenticated"):
-        return redirect(url_for("login"))
+    return render_template("admin.html")
 
-    return "Welcome to ServiceBoard Admin!"
+@app.route("/logout", methods=["POST"])
+@require_login
+def logout():
+    session.clear()
+
+    return redirect(url_for("login"))
