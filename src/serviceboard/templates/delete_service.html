@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Delete Service - ServiceBoard</title>
+</head>
+<body>
+    <h1>Delete Service</h1>
+
+    <p>Are you sure you want to delete this service?</p>
+
+    <p>
+        <strong>{{ service["name"] }}</strong>
+        <br>
+        {{ service["url"] }}
+    </p>
+
+    <p>This action cannot be undone.</p>
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <button type="submit">Yes, Delete Service</button>
+    </form>
+
+    <p>
+        <a href="{{ url_for('admin') }}">Cancel</a>
+    </p>
+</body>
+</html>

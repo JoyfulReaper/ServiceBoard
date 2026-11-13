@@ -202,6 +202,23 @@ def admin_edit_service(service_id):
 
     return render_template("edit_service.html", service=service)
 
+@app.route("/admin/services/<int:service_id>/delete", methods=["GET", "POST"])
+@require_login
+def admin_delete_service(service_id):
+    service = database.get_service(service_id)
+
+    if service is None:
+        return "Service not found", 404
+
+    if request.method == "POST":
+        deleted = database.delete_service(service_id)
+        if not deleted:
+            return "Service not found", 404
+
+        return redirect(url_for("admin"))
+
+    return render_template("delete_service.html", service=service)
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("authenticated"):

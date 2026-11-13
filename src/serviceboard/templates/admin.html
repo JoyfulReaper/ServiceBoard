@@ -63,6 +63,9 @@
                      <a href="{{ url_for('admin_edit_service', service_id=service['id']) }}">
                         Edit
                     </a>
+                    <a href="{{ url_for('admin_delete_service', service_id=service['id']) }}">
+                        Delete
+                    </a>
                     <br>
                     {{ service["url"] }}
 
