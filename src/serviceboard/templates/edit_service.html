@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edit Service - ServiceBoard</title>
+</head>
+<body>
+    <h1>Edit Service</h1>
+
+    {% if error %}
+        <p role="alert">{{ error }}</p>
+    {% endif %}
+
+    <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div>
+            <label for="name">Service Name:</label>
+            <input type="text" id="name" name="name"
+                   value="{{ service['name'] }}" required>
+        </div>
+
+        <div>
+            <label for="url">URL:</label>
+            <input type="url" id="url" name="url"
+                   value="{{ service['url'] }}" required>
+        </div>
+
+        <div>
+            <label for="host">VPS / Host:</label>
+            <input type="text" id="host" name="host"
+                   value="{{ service['host'] or '' }}">
+        </div>
+
+        <div>
+            <label for="runtime_name">Runtime:</label>
+            <input type="text" id="runtime_name" name="runtime_name"
+                   value="{{ service['runtime_name'] or '' }}">
+        </div>
+
+        <div>
+            <label for="runtime_version">Runtime Version:</label>
+            <input type="text" id="runtime_version" name="runtime_version"
+                   value="{{ service['runtime_version'] or '' }}">
+        </div>
+
+        <button type="submit">Save Changes</button>
+    </form>
+
+    <p>
+        <a href="{{ url_for('admin') }}">Cancel</a>
+    </p>
+</body>
+</html>

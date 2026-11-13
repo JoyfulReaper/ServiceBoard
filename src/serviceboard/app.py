@@ -164,6 +164,44 @@ def admin_create_service():
 
     return redirect(url_for("admin"))
 
+@app.route("/admin/services/<int:service_id>/edit", methods=["GET", "POST"])
+@require_login
+def admin_edit_service(service_id):
+    service = database.get_service(service_id)
+
+    if service is None:
+        return "Service not found", 404
+
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        url = request.form.get("url", "").strip()
+
+        host = request.form.get("host", "").strip() or None
+        runtime_name = request.form.get("runtime_name", "").strip() or None
+        runtime_version = request.form.get("runtime_version", "").strip() or None
+
+        if not name or not url:
+            return render_template("edit_service.html",
+                                   service=service,
+                                   error="Service name and URL are required"), 400
+
+        if runtime_version and not runtime_name:
+            return render_template("edit_service.html",
+                                   service=service,
+                                   error="Runtime name is required when specifying a version"), 400
+
+        database.update_service(
+            service_id,
+            name,
+            url,
+            host,
+            runtime_name,
+            runtime_version)
+
+        return redirect(url_for("admin"))
+
+    return render_template("edit_service.html", service=service)
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if session.get("authenticated"):

@@ -60,6 +60,9 @@
             {% for service in services %}
                 <li>
                     <strong>{{ service["name"] }}</strong>
+                     <a href="{{ url_for('admin_edit_service', service_id=service['id']) }}">
+                        Edit
+                    </a>
                     <br>
                     {{ service["url"] }}
 
