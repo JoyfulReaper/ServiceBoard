@@ -197,3 +197,22 @@ def test_admin_can_delete_service(client):
 
     assert response.status_code == 302
     assert database.get_service(created["id"]) is None
+
+def test_admin_create_rejects_invalid_runtime(client):
+    admin_page = login_as_admin(client)
+
+    response = client.post(
+        "/admin/services",
+        data={
+            "csrf_token": extract_csrf_token(admin_page),
+            "name": "Invalid Runtime",
+            "url": "https://example.com",
+            "runtime_version": "10.0.15"
+        }
+    )
+
+    assert response.status_code == 400
+
+    assert b"Runtime name required when runtime version is provided" in response.data
+
+    assert database.get_services() == []

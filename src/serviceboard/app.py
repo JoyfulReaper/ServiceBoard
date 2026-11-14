@@ -5,6 +5,7 @@ import os
 from datetime import timedelta
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash
+from collections.abc import Mapping
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ["SERVICEBOARD_SECRET_KEY"]
@@ -46,6 +47,43 @@ def service_read_response(data):
 
     return response
 
+def validate_service_fields(data):
+    if not isinstance(data, Mapping):
+        return None, "Invalid data format"
+
+    name = data.get("name")
+    url = data.get("url")
+
+    if not isinstance(name, str) or not isinstance(url, str):
+        return None, "Invalid data format"
+
+    name = name.strip()
+    url = url.strip()
+
+    if not name or not url:
+        return None, "Service name and url required"
+
+    fields = {
+        "name": name,
+        "url": url
+    }
+
+    for field in ("host", "runtime_name", "runtime_version"):
+        value = data.get(field)
+
+        if value is not None and not isinstance(value, str):
+            return None, f"{field} must be a string or null"
+
+        if isinstance(value, str):
+            value = value.strip() or None
+
+        fields[field] = value
+
+    if fields["runtime_version"] and not fields["runtime_name"]:
+        return None, "Runtime name required when runtime version is provided"
+
+    return fields, None
+
 @app.route('/')
 def index():
     services = [
@@ -77,84 +115,27 @@ def get_service(service_id):
 @require_api_key
 @csrf.exempt
 def create_service():
-    data = request.get_json(silent=True)
+    fields, error = validate_service_fields(request.get_json(silent=True))
 
-    if not isinstance(data, dict):
-        return { "error": "Invalid data format" }, 400
+    if error is not None:
+        return {"error": error}, 400
 
-    name = data.get("name")
-    if not isinstance(name, str):
-        return { "error": "Invalid data format" }, 400
+    service = database.create_service(**fields)
 
-    url = data.get("url")
-    if not isinstance(url, str):
-        return { "error": "Invalid data format" }, 400
-
-    name = name.strip()
-    url = url.strip()
-
-    if not name or not url:
-        return { "error": "Service name and url required" }, 400
-
-    optional_fields = {}
-
-    for field in ("host", "runtime_name", "runtime_version"):
-        value = data.get(field)
-
-        if value is not None and not isinstance(value, str):
-            return { "error": f"{field} must be a string or null"}, 400
-
-        if isinstance(value, str):
-            value = value.strip() or None
-
-        optional_fields[field] = value
-
-    if optional_fields["runtime_version"] and not optional_fields["runtime_name"]:
-        return { "error": "Runtime name required when runtime version is provided" }, 400
-
-    service = database.create_service(name, url, **optional_fields)
     return jsonify(service), 201
 
 @app.route("/services/<int:service_id>", methods=["PUT"])
 @require_api_key
 @csrf.exempt
 def update_service(service_id):
-    data = request.get_json(silent=True)
+    fields,error = validate_service_fields(request.get_json(silent=True))
 
-    if not isinstance(data, dict):
-        return { "error": "Invalid data format" }, 400
+    if error is not None:
+        return { "error": error}, 400
 
-    name = data.get("name")
-    url = data.get("url")
-
-    if not isinstance(name, str) or not isinstance(url, str):
-        return { "error": "Invalid data format" }, 400
-
-    name = name.strip()
-    url = url.strip()
-
-    if not name or not url:
-        return { "error": "Service name and url required" }, 400
-
-    optional_fields = {}
-    for field in ("host", "runtime_name", "runtime_version"):
-        value = data.get(field)
-
-        if value is not None and not isinstance(value, str):
-            return {"error": f"{field} must be a string or null"}, 400
-
-        if isinstance(value, str):
-            value = value.strip() or None
-
-        optional_fields[field] = value
-
-    if optional_fields["runtime_version"] and not optional_fields["runtime_name"]:
-        return {"error": "Runtime name required when runtime version is provided"}, 400
-
-    service = database.update_service(service_id, name, url, **optional_fields)
-
+    service = database.update_service(service_id, **fields)
     if service is None:
-        return {"error": "Service not found"}, 404
+        return { "error": "Service not found"}
 
     return jsonify(service)
 
@@ -172,30 +153,16 @@ def delete_service(service_id):
 @app.route("/admin/services", methods=["POST"])
 @require_login
 def admin_create_service():
-    name = request.form.get("name", "").strip()
-    url = request.form.get("url", "").strip()
+    fields, error = validate_service_fields(request.form)
 
-    host = request.form.get("host", "").strip() or None
-    runtime_name = request.form.get("runtime_name", "").strip() or None
-    runtime_version = request.form.get("runtime_version", "").strip() or None
+    if error is not None:
+        return render_template(
+            "admin.html",
+            serrvices=database.get_services(),
+            error=error
+        ), 400
 
-    if not name or not url:
-        return render_template("admin.html",
-                               services=database.get_services(),
-                               error="Service name and URL are required"), 400
-
-    if runtime_version and not runtime_name:
-        return render_template("admin.html",
-                               services=database.get_services(),
-                               error="Runtime name is required when specifying a version"), 400
-
-    database.create_service(
-        name,
-        url,
-        host,
-        runtime_name,
-        runtime_version
-    )
+    database.create_service(**fields)
 
     return redirect(url_for("admin"))
 
@@ -208,30 +175,16 @@ def admin_edit_service(service_id):
         return "Service not found", 404
 
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        url = request.form.get("url", "").strip()
+        fields, error = validate_service_fields(request.form)
 
-        host = request.form.get("host", "").strip() or None
-        runtime_name = request.form.get("runtime_name", "").strip() or None
-        runtime_version = request.form.get("runtime_version", "").strip() or None
+        if error is not None:
+            return render_template(
+                "edit_service.html",
+                service=service,
+                error=error
+            ), 400
 
-        if not name or not url:
-            return render_template("edit_service.html",
-                                   service=service,
-                                   error="Service name and URL are required"), 400
-
-        if runtime_version and not runtime_name:
-            return render_template("edit_service.html",
-                                   service=service,
-                                   error="Runtime name is required when specifying a version"), 400
-
-        database.update_service(
-            service_id,
-            name,
-            url,
-            host,
-            runtime_name,
-            runtime_version)
+        database.update_service(service_id, **fields)
 
         return redirect(url_for("admin"))
 
