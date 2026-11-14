@@ -30,6 +30,7 @@ def initialize_database():
                name            TEXT NOT NULL,
                url             TEXT NOT NULL,
                host            TEXT,
+               deployment_type TEXT,
                runtime_name    TEXT,
                runtime_version TEXT
            )
@@ -39,7 +40,7 @@ def initialize_database():
             row[1] for row in connection.execute("PRAGMA table_info(services)")
         }
 
-        for column in ("host", "runtime_name", "runtime_version"):
+        for column in ("host", "deployment_type", "runtime_name", "runtime_version"):
             if column not in existing_columns:
                 connection.execute(f"ALTER TABLE services ADD COLUMN {column} TEXT")
 
@@ -49,7 +50,9 @@ def get_services():
     with closing(sqlite3.connect(database_path())) as connection:
         connection.row_factory = sqlite3.Row
         cursor = connection.execute("""
-            SELECT id, name, url, host, runtime_name, runtime_version FROM services""")
+            SELECT id, name, url, host, deployment_type, runtime_name, runtime_version
+            FROM services
+                                    """)
         rows = cursor.fetchall()
 
         services = [dict(row) for row in rows]
@@ -58,7 +61,10 @@ def get_services():
 def get_service(service_id):
     with closing(sqlite3.connect(database_path())) as connection:
         connection.row_factory = sqlite3.Row
-        cursor = connection.execute("""SELECT id, name, url, host, runtime_name, runtime_version FROM services WHERE id = ?""", (service_id,))
+        cursor = connection.execute("""
+            SELECT id, name, url, host, deployment_type, runtime_name, runtime_version 
+            FROM services WHERE id = ?
+                                    """, (service_id,))
         row = cursor.fetchone()
         service = dict(row) if row else None
         return service
@@ -68,12 +74,15 @@ def create_service(
         url: str,
         host: str | None = None,
         runtime_name: str | None = None,
-        runtime_version: str | None = None
+        runtime_version: str | None = None,
+        deployment_type: str | None = None,
 ):
 
-    sql = """INSERT INTO services (name, url, host, runtime_name, runtime_version) VALUES (?, ?, ?, ?, ?)"""
+    sql = """
+          INSERT INTO services (name, url, host, deployment_type, runtime_name, runtime_version)
+          VALUES (?, ?, ?, ?, ?, ?)"""
     with closing(sqlite3.connect(database_path())) as connection:
-        cursor = connection.execute(sql, (name, url, host, runtime_name, runtime_version))
+        cursor = connection.execute(sql, (name, url, host, deployment_type, runtime_name, runtime_version))
         service_id = cursor.lastrowid
 
         service = {
@@ -81,6 +90,7 @@ def create_service(
             'name': name,
             'url': url,
             'host': host,
+            'deployment_type': deployment_type,
             'runtime_name': runtime_name,
             'runtime_version': runtime_version
         }
@@ -102,18 +112,22 @@ def delete_service(service_id):
 
     return deleted
 
-def update_service(service_id: int, name: str, url: str,
-                   host: str | None = None, runtime_name: str | None = None,
-                   runtime_version: str | None = None):
+def update_service(service_id: int,
+                   name: str,
+                   url: str,
+                   host: str | None = None,
+                   runtime_name: str | None = None,
+                   runtime_version: str | None = None,
+                   deployment_type: str | None = None):
 
     sql = """
-        UPDATE services SET name = ?, url = ?, host = ?, runtime_name = ?, runtime_version = ?
+        UPDATE services SET name = ?, url = ?, host = ?, deployment_type = ?, runtime_name = ?, runtime_version = ?
         WHERE id = ?
     """
 
     with closing(sqlite3.connect(database_path())) as connection:
         cursor = connection.execute(sql,
-                                    (name, url, host, runtime_name, runtime_version, service_id))
+                                    (name, url, host, deployment_type, runtime_name, runtime_version, service_id))
         connection.commit()
 
         if cursor.rowcount == 0:

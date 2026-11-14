@@ -114,6 +114,7 @@ def test_admin_can_create_service(client):
             "name": "Packet Garden",
             "url": "https://garden.kgivler.com",
             "host": "FrontDesk",
+            "deployment_type": "docker",
             "runtime_name": "Microsoft.AspNetCore.App",
             "runtime_version": "10.0.15"
         }
@@ -132,6 +133,7 @@ def test_admin_can_create_service(client):
     assert service["host"] == "FrontDesk"
     assert service["runtime_name"] == "Microsoft.AspNetCore.App"
     assert service["runtime_version"] == "10.0.15"
+    assert service["deployment_type"] == "docker"
 
 def test_admin_can_edit_service(client):
     created = database.create_service(
@@ -154,6 +156,7 @@ def test_admin_can_edit_service(client):
             "name": "Updated Service",
             "url": "https://new.example.com",
             "host": "FrontDesk",
+            "deployment_type": "systemd",
             "runtime_name": "Microsoft.AspNetCore.App",
             "runtime_version": "10.0.15"
         }
@@ -170,6 +173,7 @@ def test_admin_can_edit_service(client):
     assert updated["host"] == "FrontDesk"
     assert updated["runtime_name"] == "Microsoft.AspNetCore.App"
     assert updated["runtime_version"] == "10.0.15"
+    assert updated["deployment_type"] == "systemd"
 
 def test_admin_can_delete_service(client):
     created = database.create_service(

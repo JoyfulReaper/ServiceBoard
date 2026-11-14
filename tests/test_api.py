@@ -7,7 +7,8 @@ def test_public_services_hide_private_fields(client):
         "https://example.com",
         "FrontDesk",
         "Microsoft.AspNetCore.App",
-        "10.0.15"
+        "10.0.15",
+        deployment_type="docker"
     )
 
     response = client.get("/services")
@@ -30,7 +31,8 @@ def test_valid_bearer_token_shows_private_fields(client):
         "https://example.com",
         "FrontDesk",
         "Microsoft.AspNetCore.App",
-        "10.0.15"
+        "10.0.15",
+        deployment_type="docker"
     )
 
     response = client.get(
@@ -184,3 +186,39 @@ def test_create_rejects_runtime_version_without_name(client):
     )
 
     assert database.get_services() == []
+
+def test_api_create_and_update_deployment_type(client):
+    headers = {"Authorization": "Bearer test-api-key"}
+
+    response = client.post(
+        "/services",
+        json={
+            "name": "Deployment Test",
+            "url": "https://example.com",
+            "deployment_type": "docker"
+        },
+        headers=headers
+    )
+
+    assert response.status_code == 201
+
+    created = response.get_json()
+
+    assert created["deployment_type"] == "docker"
+
+    response = client.put(
+        f"/services/{created['id']}",
+        json={
+            "name": "Deployment Test",
+            "url": "https://example.com",
+            "deployment_type": "systemd"
+        },
+        headers=headers
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["deployment_type"] == "systemd"
+
+    retrieved = database.get_service(created["id"])
+
+    assert retrieved["deployment_type"] == "systemd"

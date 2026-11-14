@@ -163,3 +163,29 @@ def test_configured_database_path_must_exist(tmp_path, monkeypatch):
 
     assert not missing_database.exists()
     assert not (tmp_path / "data.db").exists()
+
+def test_deployment_type_create_and_update(isolated_database):
+    created = database.create_service(
+        "Deployment Test",
+        "https://example.com",
+        deployment_type="docker"
+    )
+
+    assert created["deployment_type"] == "docker"
+
+    retrieved = database.get_service(created["id"])
+
+    assert retrieved["deployment_type"] == "docker"
+
+    updated = database.update_service(
+        created["id"],
+        "Deployment Test",
+        "https://example.com",
+        deployment_type="systemd"
+    )
+
+    assert updated["deployment_type"] == "systemd"
+
+    retrieved = database.get_service(created["id"])
+
+    assert retrieved["deployment_type"] == "systemd"

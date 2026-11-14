@@ -41,6 +41,19 @@
         </div>
 
         <div>
+            <label for="deployment_type">Deployment Type:</label>
+            <input type="text" id="deployment_type" name="deployment_type"
+                   list="deployment-types" placeholder="e.g. docker">
+
+            <datalist id="deployment-types">
+                <option value="docker"></option>
+                <option value="systemd"></option>
+                <option value="manual"></option>
+                <option value="other"></option>
+            </datalist>
+        </div>
+
+        <div>
             <label for="runtime_name">Runtime:</label>
             <input type="text" id="runtime_name" name="runtime_name">
         </div>
