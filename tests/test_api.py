@@ -8,7 +8,8 @@ def test_public_services_hide_private_fields(client):
         "FrontDesk",
         "Microsoft.AspNetCore.App",
         "10.0.15",
-        deployment_type="docker"
+        deployment_type="docker",
+        description="A test service"
     )
 
     response = client.get("/services")
@@ -21,7 +22,8 @@ def test_public_services_hide_private_fields(client):
         {
             "id": created["id"],
             "name": "Test Service",
-            "url": "https://example.com"
+            "url": "https://example.com",
+            "description": "A test service"
         }
     ]
 
@@ -222,3 +224,55 @@ def test_api_create_and_update_deployment_type(client):
     retrieved = database.get_service(created["id"])
 
     assert retrieved["deployment_type"] == "systemd"
+
+def test_api_create_and_update_description(client):
+    headers = {"Authorization": "Bearer test-api-key"}
+
+    response = client.post(
+        "/services",
+        json={
+            "name": "SmolSearch",
+            "url": "https://example.com",
+            "description": "A search engine for the small web"
+        },
+        headers=headers
+    )
+
+    assert response.status_code == 201
+
+    created = response.get_json()
+
+    assert created["description"] == "A search engine for the small web"
+    assert database.get_service(created["id"])["description"] == "A search engine for the small web"
+
+    response = client.put(
+        f"/services/{created['id']}",
+        json={
+            "name": "SmolSearch",
+            "url": "https://example.com",
+            "description": "Searches Gemini and Gopher content"
+        },
+        headers=headers
+    )
+
+    assert response.status_code == 200
+
+    updated = response.get_json()
+
+    assert updated["description"] == "Searches Gemini and Gopher content"
+    assert database.get_service(created["id"])["description"] == "Searches Gemini and Gopher content"
+
+def test_public_homepage_shows_description_without_private_fields(client):
+    database.create_service(
+        "SmolSearch",
+        "https://example.com",
+        host="PrivateHost123",
+        description="Searches Gemini and Gopher content"
+    )
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b"SmolSearch" in response.data
+    assert b"Searches Gemini and Gopher content" in response.data
+    assert b"PrivateHost123" not in response.data

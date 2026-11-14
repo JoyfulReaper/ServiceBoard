@@ -207,3 +207,93 @@ main.container {
     color: var(--muted);
     text-align: center;
 }
+
+.service-description {
+    margin: 0 0 1rem;
+    color: var(--muted);
+    white-space: pre-line;
+}
+
+/* Service forms */
+
+.service-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.service-form > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.service-form label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.service-form input:not([type="hidden"]),
+.service-form textarea {
+    width: 100%;
+    min-width: 0;
+    padding: 0.75rem;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: inherit;
+}
+
+.service-form input:focus,
+.service-form textarea:focus {
+    border-color: var(--accent);
+}
+
+.service-form input::placeholder,
+.service-form textarea::placeholder {
+    color: var(--muted);
+}
+
+.service-form textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.service-form .form-full-width {
+    grid-column: 1 / -1;
+}
+
+.service-form button {
+    justify-self: start;
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.service-form button:hover {
+    background: #8be0c7;
+}
+
+/* Mobile forms */
+
+@media (max-width: 600px) {
+    .service-form {
+        grid-template-columns: 1fr;
+        padding: 1.25rem;
+    }
+
+    .service-form .form-full-width {
+        grid-column: auto;
+    }
+}

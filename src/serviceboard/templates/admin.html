@@ -1,14 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ServiceBoard Admin</title>
-</head>
-<body>
-    <h1>ServiceBoard Administration</h1>
+{% extends "base.html" %}
 
-    <p>You are logged in!</p>
+{% block title %}Administration | ServiceBoard{% endblock %}
+
+{% block content %}
+
+<section class="page-intro">
+    <p class="eyebrow">Administration</p>
+    <h1>Manage Services</h1>
+    <p class="intro-text">
+        Add, edit, and manage services in your directory.
+    </p>
+</section>
 
     <form method="POST" action="{{ url_for('logout') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -22,7 +24,7 @@
         <p role="alert">{{ error }}</p>
     {% endif %}
 
-    <form method="POST" action="{{ url_for('admin_create_service') }}">
+    <form class="service-form" method="POST" action="{{ url_for('admin_create_service') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div>
@@ -33,6 +35,12 @@
         <div>
             <label for="url">URL:</label>
             <input type="url" id="url" name="url" required>
+        </div>
+
+        <div class="form-full-width">
+            <label for="description">Description:</label>
+            <textarea id="description" name="description" rows="3"
+                      placeholder="What does this service do?"></textarea>
         </div>
 
         <div>
@@ -101,5 +109,4 @@
     {% else %}
         <p>No services have been added yet.</p>
     {% endif %}
-</body>
-</html>
+{% endblock %}

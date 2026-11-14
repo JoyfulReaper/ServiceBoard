@@ -254,3 +254,45 @@ def test_admin_edit_rejects_invalid_runtime(client):
     assert b"Runtime name required when runtime version is provided" in response.data
 
     assert database.get_service(original["id"]) == original
+
+def test_admin_create_and_edit_description(client):
+    admin_page = login_as_admin(client)
+
+    response = client.post(
+        "/admin/services",
+        data={
+            "csrf_token": extract_csrf_token(admin_page),
+            "name": "SmolSearch",
+            "url": "https://example.com",
+            "description": "Searches the small web"
+        }
+    )
+
+    assert response.status_code == 302
+
+    created = database.get_services()[0]
+
+    assert created["description"] == "Searches the small web"
+
+    edit_url = f"/admin/services/{created['id']}/edit"
+
+    edit_page = client.get(edit_url)
+
+    assert edit_page.status_code == 200
+    assert b"Searches the small web" in edit_page.data
+
+    response = client.post(
+        edit_url,
+        data={
+            "csrf_token": extract_csrf_token(edit_page),
+            "name": "SmolSearch",
+            "url": "https://example.com",
+            "description": "Searches Gemini and Gopher"
+        }
+    )
+
+    assert response.status_code == 302
+
+    updated = database.get_service(created["id"])
+
+    assert updated["description"] == "Searches Gemini and Gopher"

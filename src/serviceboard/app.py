@@ -26,6 +26,7 @@ def public_service(service):
     return {
         "id": service["id"],
         "name": service["name"],
+        "description": service["description"],
         "url": service["url"]
     }
 
@@ -89,7 +90,8 @@ def index():
     services = [
         {
             "name": service["name"],
-            "url": service["url"]
+            "url": service["url"],
+            "description": service["description"]
         }
         for service in database.get_services()
     ]
