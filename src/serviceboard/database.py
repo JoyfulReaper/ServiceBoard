@@ -29,6 +29,7 @@ def initialize_database():
                id              INTEGER PRIMARY KEY,
                name            TEXT NOT NULL,
                url             TEXT NOT NULL,
+               description     TEXT,
                host            TEXT,
                deployment_type TEXT,
                runtime_name    TEXT,
@@ -40,7 +41,7 @@ def initialize_database():
             row[1] for row in connection.execute("PRAGMA table_info(services)")
         }
 
-        for column in ("host", "deployment_type", "runtime_name", "runtime_version"):
+        for column in ("description", "host", "deployment_type", "runtime_name", "runtime_version"):
             if column not in existing_columns:
                 connection.execute(f"ALTER TABLE services ADD COLUMN {column} TEXT")
 
@@ -50,7 +51,7 @@ def get_services():
     with closing(sqlite3.connect(database_path())) as connection:
         connection.row_factory = sqlite3.Row
         cursor = connection.execute("""
-            SELECT id, name, url, host, deployment_type, runtime_name, runtime_version
+            SELECT id, name, url, host, deployment_type, runtime_name, runtime_version, description
             FROM services
                                     """)
         rows = cursor.fetchall()
@@ -62,7 +63,7 @@ def get_service(service_id):
     with closing(sqlite3.connect(database_path())) as connection:
         connection.row_factory = sqlite3.Row
         cursor = connection.execute("""
-            SELECT id, name, url, host, deployment_type, runtime_name, runtime_version 
+            SELECT id, name, url, host, deployment_type, runtime_name, runtime_version, description 
             FROM services WHERE id = ?
                                     """, (service_id,))
         row = cursor.fetchone()
@@ -76,13 +77,14 @@ def create_service(
         runtime_name: str | None = None,
         runtime_version: str | None = None,
         deployment_type: str | None = None,
+        description: str | None = None
 ):
 
     sql = """
-          INSERT INTO services (name, url, host, deployment_type, runtime_name, runtime_version)
-          VALUES (?, ?, ?, ?, ?, ?)"""
+          INSERT INTO services (name, url, host, deployment_type, runtime_name, runtime_version, description)
+          VALUES (?, ?, ?, ?, ?, ?, ?)"""
     with closing(sqlite3.connect(database_path())) as connection:
-        cursor = connection.execute(sql, (name, url, host, deployment_type, runtime_name, runtime_version))
+        cursor = connection.execute(sql, (name, url, host, deployment_type, runtime_name, runtime_version, description))
         service_id = cursor.lastrowid
 
         service = {
@@ -91,6 +93,7 @@ def create_service(
             'url': url,
             'host': host,
             'deployment_type': deployment_type,
+            'description': description,
             'runtime_name': runtime_name,
             'runtime_version': runtime_version
         }
@@ -118,16 +121,17 @@ def update_service(service_id: int,
                    host: str | None = None,
                    runtime_name: str | None = None,
                    runtime_version: str | None = None,
-                   deployment_type: str | None = None):
+                   deployment_type: str | None = None,
+                   description: str | None = None):
 
     sql = """
-        UPDATE services SET name = ?, url = ?, host = ?, deployment_type = ?, runtime_name = ?, runtime_version = ?
+        UPDATE services SET name = ?, url = ?, host = ?, deployment_type = ?, runtime_name = ?, runtime_version = ?, description = ?
         WHERE id = ?
     """
 
     with closing(sqlite3.connect(database_path())) as connection:
         cursor = connection.execute(sql,
-                                    (name, url, host, deployment_type, runtime_name, runtime_version, service_id))
+                                    (name, url, host, deployment_type, runtime_name, runtime_version, description, service_id))
         connection.commit()
 
         if cursor.rowcount == 0:

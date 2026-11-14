@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{% block title %}ServiceBoard{% endblock %}</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header">
+        <div class="container header-content">
+            <a class="site-brand" href="{{ url_for('index') }}">
+                ServiceBoard
+            </a>
+
+            <nav class="site-nav" aria-label="Main navigation">
+                <a href="{{ url_for('index') }}">Services</a>
+
+                {% if session.get('authenticated') %}
+                    <a href="{{ url_for('admin') }}">Admin</a>
+                {% else %}
+                    <a href="{{ url_for('login') }}">Admin Login</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content" class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <p>ServiceBoard &mdash; A personal service directory</p>
+        </div>
+    </footer>
+</body>
+</html>

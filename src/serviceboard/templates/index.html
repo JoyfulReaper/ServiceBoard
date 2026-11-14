@@ -1,29 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ServiceBoard</title>
-</head>
-<body>
-    <h1>ServiceBoard</h1>
+{% extends "base.html" %}
 
-    <p>Services hosted by Kyle Givler</p>
+{% block title %}Services | ServiceBoard{% endblock %}
 
-    <h2>Available Services</h2>
+{% block content %}
+<section class="page-intro">
+    <p class="eyebrow">Kyle Givler's service directory</p>
+    <h1>Services</h1>
+    <p class="intro-text">
+        A collection of services and applications I host.
+    </p>
+</section>
+
+<section aria-labelledby="available-services">
+    <h2 id="available-services">Available Services</h2>
 
     {% if services %}
-        <ul>
+        <div class="service-grid">
             {% for service in services %}
-                <li>
-                    <strong>{{ service["name"] }}</strong>
-                    <br>
-                    {{ service["url"] }}
-                </li>
+                <article class="service-card">
+                    <h3>{{ service["name"] }}</h3>
+                    <p class="service-address">{{ service["url"] }}</p>
+                </article>
             {% endfor %}
-        </ul>
+        </div>
     {% else %}
-        <p>No services are currently listed.</p>
+        <div class="empty-state">
+            <p>No services are currently listed.</p>
+        </div>
     {% endif %}
-</body>
-</html>
+</section>
+{% endblock %}

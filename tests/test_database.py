@@ -189,3 +189,27 @@ def test_deployment_type_create_and_update(isolated_database):
     retrieved = database.get_service(created["id"])
 
     assert retrieved["deployment_type"] == "systemd"
+
+def test_service_description(isolated_database):
+    created = database.create_service(
+        "SmolSearch",
+        "https://example.com",
+        description="A search engine for the small web"
+    )
+
+    assert created["description"] == "A search engine for the small web"
+
+    retrieved = database.get_service(created["id"])
+
+    assert retrieved["description"] == "A search engine for the small web"
+
+    database.update_service(
+        created["id"],
+        "SmolSearch",
+        "https://example.com",
+        description="Searches Gemini and Gopher content"
+    )
+
+    updated = database.get_service(created["id"])
+
+    assert updated["description"] == "Searches Gemini and Gopher content"

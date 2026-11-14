@@ -68,7 +68,7 @@ def validate_service_fields(data):
         "url": url
     }
 
-    for field in ("host", "deployment_type", "runtime_name", "runtime_version"):
+    for field in ("host", "deployment_type", "description", "runtime_name", "runtime_version"):
         value = data.get(field)
 
         if value is not None and not isinstance(value, str):
