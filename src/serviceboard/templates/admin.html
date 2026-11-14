@@ -76,36 +76,88 @@
 
     <h2>Services</h2>
 
+    <form class="service-controls" method="GET" action="{{ url_for('admin') }}">
+        <label for="sort">Sort by:</label>
+
+        <select id="sort" name="sort">
+            <option value="name" {% if selected_sort == "name" %}selected{% endif %}>
+                Name
+            </option>
+
+            <option value="host" {% if selected_sort == "host" %}selected{% endif %}>
+                Host
+            </option>
+
+            <option value="deployment" {% if selected_sort == "deployment" %}selected{% endif %}>
+                Deployment Type
+            </option>
+
+            <option value="runtime" {% if selected_sort == "runtime" %}selected{% endif %}>
+                Runtime
+            </option>
+        </select>
+
+        <button type="submit">Apply</button>
+    </form>
+
     {% if services %}
-        <ul>
-            {% for service in services %}
-                <li>
-                    <strong>{{ service["name"] }}</strong>
-                     <a href="{{ url_for('admin_edit_service', service_id=service['id']) }}">
+       <div class="admin-service-list">
+    {% for service in services %}
+        <article class="admin-service-card">
+            <div class="admin-service-header">
+                <div>
+                    <h3>{{ service["name"] }}</h3>
+                    <p class="service-address">{{ service["url"] }}</p>
+                </div>
+
+                <div class="admin-service-actions">
+                    <a href="{{ url_for('admin_edit_service', service_id=service['id']) }}">
                         Edit
                     </a>
-                    <a href="{{ url_for('admin_delete_service', service_id=service['id']) }}">
+
+                    <a class="delete-link"
+                       href="{{ url_for('admin_delete_service', service_id=service['id']) }}">
                         Delete
                     </a>
-                    <br>
-                    {{ service["url"] }}
+                </div>
+            </div>
 
-                    {% if service["host"] %}
-                        <br>
-                        Host: {{ service["host"] }}
-                    {% endif %}
+            {% if service["description"] %}
+                <p class="admin-service-description">
+                    {{ service["description"] }}
+                </p>
+            {% endif %}
 
-                    {% if service["runtime_name"] %}
-                        <br>
-                        Runtime: {{ service["runtime_name"] }}
+            <dl class="admin-service-meta">
+                {% if service["host"] %}
+                    <div>
+                        <dt>Host</dt>
+                        <dd>{{ service["host"] }}</dd>
+                    </div>
+                {% endif %}
 
-                        {% if service["runtime_version"] %}
-                            {{ service["runtime_version"] }}
-                        {% endif %}
-                    {% endif %}
-                </li>
-            {% endfor %}
-        </ul>
+                {% if service["deployment_type"] %}
+                    <div>
+                        <dt>Deployment</dt>
+                        <dd>{{ service["deployment_type"] }}</dd>
+                    </div>
+                {% endif %}
+
+                {% if service["runtime_name"] %}
+                    <div>
+                        <dt>Runtime</dt>
+                        <dd>
+                            {{ service["runtime_name"] }}
+                            {% if service["runtime_version"] %}
+                                {{ service["runtime_version"] }}
+                            {% endif %}
+                        </dd>
+                    </div>
+                {% endif %}
+            </dl>
+        </article>
+    {% endfor %}
+</div>
     {% else %}
         <p>No services have been added yet.</p>
     {% endif %}

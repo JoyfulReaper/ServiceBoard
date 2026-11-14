@@ -233,7 +233,27 @@ def login():
 @app.route("/admin")
 @require_login
 def admin():
-    services = database.get_services()
+    sort_fields = {
+        "name": "name",
+        "host": "host",
+        "deployment": "deployment_type",
+        "runtime": "runtime_name",
+    }
+
+    sort_by = request.args.get("sort", "name")
+    if sort_by not in sort_fields:
+        sort_by = "name"
+
+    sort_field = sort_fields[sort_by]
+
+    services = sorted(
+        database.get_services(),
+        key=lambda service: (
+            service[sort_field] is None,
+            (service[sort_field] or "").casefold(),
+            service["name"].casefold()
+        )
+    )
 
     return render_template("admin.html", services=services)
 
