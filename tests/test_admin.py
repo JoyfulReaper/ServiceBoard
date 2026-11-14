@@ -216,3 +216,37 @@ def test_admin_create_rejects_invalid_runtime(client):
     assert b"Runtime name required when runtime version is provided" in response.data
 
     assert database.get_services() == []
+
+def test_admin_edit_rejects_invalid_runtime(client):
+    original = database.create_service(
+        "Original Service",
+        "https://old.example.com",
+        "Clanker",
+        "Microsoft.AspNetCore.App",
+        "10.0.15"
+    )
+
+    login_as_admin(client)
+
+    edit_url = f"/admin/services/{original['id']}/edit"
+
+    edit_page = client.get(edit_url)
+    assert edit_page.status_code == 200
+
+    response = client.post(
+        edit_url,
+        data={
+            "csrf_token": extract_csrf_token(edit_page),
+            "name": "Modified Service",
+            "url": "https://new.example.com",
+            "host": "DeepDish",
+            "runtime_name": "",
+            "runtime_version": "10.0.20"
+        }
+    )
+
+    assert response.status_code == 400
+
+    assert b"Runtime name required when runtime version is provided" in response.data
+
+    assert database.get_service(original["id"]) == original

@@ -125,3 +125,41 @@ def test_database_initialization_preserves_data(isolated_database):
     retrieved = database.get_service(created["id"])
 
     assert retrieved == created
+
+def test_configured_database_path(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    custom_database = tmp_path / "custom.db"
+    custom_database.touch()
+
+    monkeypatch.setenv(
+        "SERVICEBOARD_DATABASE_PATH",
+        str(custom_database)
+    )
+
+    database.initialize_database()
+
+    created = database.create_service(
+        "Configured Service",
+        "https://example.com"
+    )
+
+    assert database.get_service(created["id"]) == created
+    assert custom_database.is_file()
+    assert not (tmp_path / "data.db").exists()
+
+def test_configured_database_path_must_exist(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    missing_database = tmp_path / "missing.db"
+
+    monkeypatch.setenv(
+        "SERVICEBOARD_DATABASE_PATH",
+        str(missing_database)
+    )
+
+    with pytest.raises(FileNotFoundError):
+        database.initialize_database()
+
+    assert not missing_database.exists()
+    assert not (tmp_path / "data.db").exists()

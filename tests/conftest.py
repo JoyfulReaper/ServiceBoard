@@ -1,10 +1,11 @@
 import importlib
-
 import pytest
 from werkzeug.security import generate_password_hash
-
 from src.serviceboard import database
 
+@pytest.fixture(autouse=True)
+def isolate_database_path_environment(monkeypatch):
+    monkeypatch.delenv("SERVICEBOARD_DATABASE_PATH", raising=False)
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
