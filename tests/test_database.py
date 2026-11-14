@@ -101,6 +101,14 @@ def test_database_migration(tmp_path, monkeypatch):
 
     services = database.get_services()
 
+    with closing(sqlite3.connect("data.db")) as connection:
+        result = connection.execute(
+            "SELECT is_public FROM services WHERE name = ?",
+            ("Old Service",)
+        ).fetchone()
+
+    assert result[0] == 1
+
     assert len(services) == 1
 
     service = services[0]
@@ -213,3 +221,51 @@ def test_service_description(isolated_database):
     updated = database.get_service(created["id"])
 
     assert updated["description"] == "Searches Gemini and Gopher content"
+
+def test_private_service(isolated_database):
+    created = database.create_service(
+        "Private Service",
+        "https://private.example.com",
+        is_public=False
+    )
+
+    assert created["is_public"] is False
+
+    retrieved = database.get_service(created["id"])
+    assert retrieved["is_public"] is False
+
+def test_update_service_visibility(isolated_database):
+    created = database.create_service(
+        "Private Service",
+        "https://example.com",
+        is_public=False
+    )
+
+    # Updating without specifying visibility should preserve it.
+    updated = database.update_service(
+        created["id"],
+        "Renamed Service",
+        "https://example.com"
+    )
+
+    assert updated["is_public"] is False
+
+    # Explicitly make the service public.
+    updated = database.update_service(
+        created["id"],
+        "Renamed Service",
+        "https://example.com",
+        is_public=True
+    )
+
+    assert updated["is_public"] is True
+
+    # Make it private again.
+    updated = database.update_service(
+        created["id"],
+        "Renamed Service",
+        "https://example.com",
+        is_public=False
+    )
+
+    assert updated["is_public"] is False

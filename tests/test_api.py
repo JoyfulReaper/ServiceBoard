@@ -276,3 +276,118 @@ def test_public_homepage_shows_description_without_private_fields(client):
     assert b"SmolSearch" in response.data
     assert b"Searches Gemini and Gopher content" in response.data
     assert b"PrivateHost123" not in response.data
+
+def test_private_services_hidden_from_public(client):
+    public = database.create_service(
+        "Public Service",
+        "https://public.example.com"
+    )
+
+    private = database.create_service(
+        "Private Service",
+        "https://private.example.com",
+        is_public=False
+    )
+
+    # Public homepage
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert b"Public Service" in response.data
+    assert b"Private Service" not in response.data
+
+    # Public JSON listing
+    response = client.get("/services")
+
+    assert response.status_code == 200
+
+    services = response.get_json()
+    assert len(services) == 1
+    assert services[0]["id"] == public["id"]
+
+    # Direct access without authentication
+    response = client.get(f"/services/{private['id']}")
+
+    assert response.status_code == 404
+
+    # Authenticated access
+    response = client.get(
+        f"/services/{private['id']}",
+        headers={"Authorization": "Bearer test-api-key"}
+    )
+
+    assert response.status_code == 200
+    assert response.get_json() == private
+
+    # Authenticated listing includes both services
+    response = client.get(
+        "/services",
+        headers={"Authorization": "Bearer test-api-key"}
+    )
+
+    assert response.status_code == 200
+    assert len(response.get_json()) == 2
+
+def test_api_service_visibility(client):
+    headers = {"Authorization": "Bearer test-api-key"}
+
+    # Create a private service.
+    response = client.post(
+        "/services",
+        json={
+            "name": "Private Service",
+            "url": "https://example.com",
+            "is_public": False
+        },
+        headers=headers
+    )
+
+    assert response.status_code == 201
+
+    created = response.get_json()
+    assert created["is_public"] is False
+
+    service_id = created["id"]
+
+    # Updating without visibility should preserve it.
+    response = client.put(
+        f"/services/{service_id}",
+        json={
+            "name": "Updated Private Service",
+            "url": "https://example.com"
+        },
+        headers=headers
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["is_public"] is False
+
+    # Explicitly make the service public.
+    response = client.put(
+        f"/services/{service_id}",
+        json={
+            "name": "Updated Private Service",
+            "url": "https://example.com",
+            "is_public": True
+        },
+        headers=headers
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["is_public"] is True
+
+def test_api_rejects_invalid_visibility(client):
+    response = client.post(
+        "/services",
+        json={
+            "name": "Invalid Service",
+            "url": "https://example.com",
+            "is_public": "false"
+        },
+        headers={"Authorization": "Bearer test-api-key"}
+    )
+
+    assert response.status_code == 400
+    assert response.get_json()["error"] == "is_public must be a boolean"
+
+    assert database.get_services() == []

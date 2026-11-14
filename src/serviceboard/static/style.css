@@ -238,7 +238,7 @@ main.container {
     color: var(--text);
 }
 
-.service-form input:not([type="hidden"]),
+.service-form input:not([type="hidden"]):not([type="checkbox"]),
 .service-form textarea {
     width: 100%;
     min-width: 0;
@@ -248,6 +248,11 @@ main.container {
     border: 1px solid var(--border);
     border-radius: 6px;
     font: inherit;
+}
+
+.service-form input[type="checkbox"] {
+    accent-color: var(--accent);
+    margin-right: 0.5rem;
 }
 
 .service-form input:focus,
@@ -409,4 +414,26 @@ main.container {
 
 .service-controls button:hover {
     background: #8be0c7;
+}
+
+.visibility-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    margin-bottom: 0.5rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.visibility-public {
+    color: #6acdb2;
+    background: #173c35;
+    border: 1px solid #326b5c;
+}
+
+.visibility-private {
+    color: #ffca86;
+    background: #443321;
+    border: 1px solid #78583b;
 }

@@ -71,6 +71,14 @@
             <input type="text" id="runtime_version" name="runtime_version">
         </div>
 
+        <div class="form-full-width">
+            <label for="is_public">
+                <input type="checkbox" id="is_public" name="is_public"
+                       {% if form_is_public is not defined or form_is_public %}checked{% endif %}>
+                Show publicly
+            </label>
+        </div>
+
         <button type="submit">Add Service</button>
     </form>
 
@@ -107,6 +115,13 @@
             <div class="admin-service-header">
                 <div>
                     <h3>{{ service["name"] }}</h3>
+
+                    {% if service["is_public"] %}
+                        <span class="visibility-badge visibility-public">Public</span>
+                    {% else %}
+                        <span class="visibility-badge visibility-private">Private</span>
+                    {% endif %}
+
                     <p class="service-address">{{ service["url"] }}</p>
                 </div>
 

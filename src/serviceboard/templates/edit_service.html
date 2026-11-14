@@ -64,6 +64,14 @@
                    value="{{ service['runtime_version'] or '' }}">
         </div>
 
+        <div>
+            <label for="is_public">
+                <input type="checkbox" id="is_public" name="is_public"
+                       {% if form_is_public|default(service["is_public"]) %}checked{% endif %}>
+                Show publicly
+            </label>
+        </div>
+
         <button type="submit">Save Changes</button>
     </form>
 

@@ -296,3 +296,65 @@ def test_admin_create_and_edit_description(client):
     updated = database.get_service(created["id"])
 
     assert updated["description"] == "Searches Gemini and Gopher"
+
+def test_admin_can_change_service_visibility(client):
+    admin_page = login_as_admin(client)
+
+    assert b'name="is_public"' in admin_page.data
+
+    # An unchecked checkbox is omitted from the submitted form.
+    response = client.post(
+        "/admin/services",
+        data={
+            "csrf_token": extract_csrf_token(admin_page),
+            "name": "Internal Service",
+            "url": "https://internal.example.com"
+        }
+    )
+
+    assert response.status_code == 302
+
+    created = database.get_services()[0]
+    assert created["is_public"] is False
+
+    # Edit the service and make it public.
+    edit_url = f"/admin/services/{created['id']}/edit"
+    edit_page = client.get(edit_url)
+
+    assert edit_page.status_code == 200
+
+    response = client.post(
+        edit_url,
+        data={
+            "csrf_token": extract_csrf_token(edit_page),
+            "name": "Internal Service",
+            "url": "https://internal.example.com",
+            "is_public": "on"
+        }
+    )
+
+    assert response.status_code == 302
+
+    updated = database.get_service(created["id"])
+    assert updated["is_public"] is True
+
+def test_admin_displays_visibility_badges(client):
+    database.create_service(
+        "Service One",
+        "https://example.com",
+        is_public=True
+    )
+
+    database.create_service(
+        "Service Two",
+        "https://internal.example.com",
+        is_public=False
+    )
+
+    login_as_admin(client)
+
+    response = client.get("/admin")
+
+    assert response.status_code == 200
+    assert b"visibility-public" in response.data
+    assert b"visibility-private" in response.data

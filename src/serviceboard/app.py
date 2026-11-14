@@ -35,8 +35,15 @@ def service_read_response(data):
 
     if authorization is None:
         if isinstance(data, list):
-            data = [public_service(service) for service in data]
+            data = [
+                public_service(service)
+                for service in data
+                if service["is_public"]
+            ]
         else:
+            if not data["is_public"]:
+                return jsonify({"error": "Service not found"}), 404
+
             data = public_service(data)
     elif not is_valid_api_key():
         return jsonify({"error": "Invalid API key"}), 401, {
@@ -83,6 +90,14 @@ def validate_service_fields(data):
     if fields["runtime_version"] and not fields["runtime_name"]:
         return None, "Runtime name required when runtime version is provided"
 
+    if "is_public" in data:
+        is_public = data["is_public"]
+
+        if not isinstance(is_public, bool):
+            return None, "is_public must be a boolean"
+
+        fields["is_public"] = is_public
+
     return fields, None
 
 @app.route('/')
@@ -94,6 +109,7 @@ def index():
             "description": service["description"]
         }
         for service in database.get_services()
+        if service["is_public"]
     ]
 
     return render_template("index.html", services=services)
@@ -155,12 +171,16 @@ def delete_service(service_id):
 @app.route("/admin/services", methods=["POST"])
 @require_login
 def admin_create_service():
-    fields, error = validate_service_fields(request.form)
+    form_data = request.form.to_dict()
+    form_data["is_public"] = "is_public" in request.form
+
+    fields, error = validate_service_fields(form_data)
 
     if error is not None:
         return render_template(
             "admin.html",
-            serrvices=database.get_services(),
+            services=database.get_services(),
+            form_is_public=form_data["is_public"],
             error=error
         ), 400
 
@@ -177,12 +197,16 @@ def admin_edit_service(service_id):
         return "Service not found", 404
 
     if request.method == "POST":
-        fields, error = validate_service_fields(request.form)
+        form_data = request.form.to_dict()
+        form_data["is_public"] = "is_public" in request.form
+
+        fields, error = validate_service_fields(form_data)
 
         if error is not None:
             return render_template(
                 "edit_service.html",
                 service=service,
+                form_is_public=form_data["is_public"],
                 error=error
             ), 400
 
