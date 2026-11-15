@@ -100,163 +100,7 @@ def validate_service_fields(data):
 
     return fields, None
 
-@app.route('/')
-def index():
-    services = [
-        {
-            "name": service["name"],
-            "url": service["url"],
-            "description": service["description"]
-        }
-        for service in database.get_services()
-        if service["is_public"]
-    ]
-
-    return render_template("index.html", services=services)
-
-@app.route('/services')
-def get_services():
-    services = database.get_services()
-
-    return service_read_response(services)
-
-@app.route('/services/<int:service_id>')
-def get_service(service_id):
-    service = database.get_service(service_id)
-
-    if service is None:
-        return { "error": "Service not found" }, 404
-
-    return service_read_response(service)
-
-@app.route("/services", methods=["POST"])
-@require_api_key
-@csrf.exempt
-def create_service():
-    fields, error = validate_service_fields(request.get_json(silent=True))
-
-    if error is not None:
-        return {"error": error}, 400
-
-    service = database.create_service(**fields)
-
-    return jsonify(service), 201
-
-@app.route("/services/<int:service_id>", methods=["PUT"])
-@require_api_key
-@csrf.exempt
-def update_service(service_id):
-    fields,error = validate_service_fields(request.get_json(silent=True))
-
-    if error is not None:
-        return { "error": error}, 400
-
-    service = database.update_service(service_id, **fields)
-    if service is None:
-        return { "error": "Service not found"}, 404
-
-    return jsonify(service)
-
-
-@app.route("/services/<int:service_id>", methods=["DELETE"])
-@require_api_key
-@csrf.exempt
-def delete_service(service_id):
-    deleted = database.delete_service(service_id)
-    if deleted:
-        return "", 204
-
-    return {"error": "Service not found"}, 404
-
-@app.route("/admin/services", methods=["POST"])
-@require_login
-def admin_create_service():
-    form_data = request.form.to_dict()
-    form_data["is_public"] = "is_public" in request.form
-
-    fields, error = validate_service_fields(form_data)
-
-    if error is not None:
-        return render_template(
-            "admin.html",
-            services=database.get_services(),
-            form_is_public=form_data["is_public"],
-            error=error
-        ), 400
-
-    database.create_service(**fields)
-
-    return redirect(url_for("admin"))
-
-@app.route("/admin/services/<int:service_id>/edit", methods=["GET", "POST"])
-@require_login
-def admin_edit_service(service_id):
-    service = database.get_service(service_id)
-
-    if service is None:
-        return "Service not found", 404
-
-    if request.method == "POST":
-        form_data = request.form.to_dict()
-        form_data["is_public"] = "is_public" in request.form
-
-        fields, error = validate_service_fields(form_data)
-
-        if error is not None:
-            return render_template(
-                "edit_service.html",
-                service=service,
-                form_is_public=form_data["is_public"],
-                error=error
-            ), 400
-
-        database.update_service(service_id, **fields)
-
-        return redirect(url_for("admin"))
-
-    return render_template("edit_service.html", service=service)
-
-@app.route("/admin/services/<int:service_id>/delete", methods=["GET", "POST"])
-@require_login
-def admin_delete_service(service_id):
-    service = database.get_service(service_id)
-
-    if service is None:
-        return "Service not found", 404
-
-    if request.method == "POST":
-        deleted = database.delete_service(service_id)
-        if not deleted:
-            return "Service not found", 404
-
-        return redirect(url_for("admin"))
-
-    return render_template("delete_service.html", service=service)
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if session.get("authenticated"):
-        return redirect(url_for("admin"))
-
-    error = None
-
-    if request.method == "POST":
-        password = request.form.get("password", "")
-
-        if check_password_hash(app.config["ADMIN_PASSWORD_HASH"], password):
-            session.clear()
-            session.permanent = True
-            session["authenticated"] = True
-
-            return redirect(url_for("admin"))
-
-        error = "Invalid password"
-
-    return render_template("login.html", error=error), 401 if error else 200
-
-@app.route("/admin")
-@require_login
-def admin():
+def render_admin_page(**extra_context):
     sort_fields = {
         "name": "name",
         "host": "host",
@@ -352,7 +196,165 @@ def admin():
         selected_runtime=selected_runtime,
         selected_deployment=selected_deployment,
         has_any_services=has_any_services,
+        **extra_context
     )
+
+@app.route('/')
+def index():
+    services = [
+        {
+            "name": service["name"],
+            "url": service["url"],
+            "description": service["description"]
+        }
+        for service in database.get_services()
+        if service["is_public"]
+    ]
+
+    return render_template("index.html", services=services)
+
+@app.route('/services')
+def get_services():
+    services = database.get_services()
+
+    return service_read_response(services)
+
+@app.route('/services/<int:service_id>')
+def get_service(service_id):
+    service = database.get_service(service_id)
+
+    if service is None:
+        return { "error": "Service not found" }, 404
+
+    return service_read_response(service)
+
+@app.route("/services", methods=["POST"])
+@require_api_key
+@csrf.exempt
+def create_service():
+    fields, error = validate_service_fields(request.get_json(silent=True))
+
+    if error is not None:
+        return {"error": error}, 400
+
+    service = database.create_service(**fields)
+
+    return jsonify(service), 201
+
+@app.route("/services/<int:service_id>", methods=["PUT"])
+@require_api_key
+@csrf.exempt
+def update_service(service_id):
+    fields,error = validate_service_fields(request.get_json(silent=True))
+
+    if error is not None:
+        return { "error": error}, 400
+
+    service = database.update_service(service_id, **fields)
+    if service is None:
+        return { "error": "Service not found"}, 404
+
+    return jsonify(service)
+
+
+@app.route("/services/<int:service_id>", methods=["DELETE"])
+@require_api_key
+@csrf.exempt
+def delete_service(service_id):
+    deleted = database.delete_service(service_id)
+    if deleted:
+        return "", 204
+
+    return {"error": "Service not found"}, 404
+
+@app.route("/admin/services", methods=["POST"])
+@require_login
+def admin_create_service():
+    form_data = request.form.to_dict()
+    form_data["is_public"] = "is_public" in request.form
+
+    fields, error = validate_service_fields(form_data)
+
+    if error is not None:
+        return render_admin_page(
+            error=error,
+            form_is_public=form_data["is_public"]
+        ), 400
+
+    database.create_service(**fields)
+
+    return redirect(url_for("admin"))
+
+@app.route("/admin/services/<int:service_id>/edit", methods=["GET", "POST"])
+@require_login
+def admin_edit_service(service_id):
+    service = database.get_service(service_id)
+
+    if service is None:
+        return "Service not found", 404
+
+    if request.method == "POST":
+        form_data = request.form.to_dict()
+        form_data["is_public"] = "is_public" in request.form
+
+        fields, error = validate_service_fields(form_data)
+
+        if error is not None:
+            return render_template(
+                "edit_service.html",
+                service=service,
+                form_is_public=form_data["is_public"],
+                error=error
+            ), 400
+
+        database.update_service(service_id, **fields)
+
+        return redirect(url_for("admin"))
+
+    return render_template("edit_service.html", service=service)
+
+@app.route("/admin/services/<int:service_id>/delete", methods=["GET", "POST"])
+@require_login
+def admin_delete_service(service_id):
+    service = database.get_service(service_id)
+
+    if service is None:
+        return "Service not found", 404
+
+    if request.method == "POST":
+        deleted = database.delete_service(service_id)
+        if not deleted:
+            return "Service not found", 404
+
+        return redirect(url_for("admin"))
+
+    return render_template("delete_service.html", service=service)
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if session.get("authenticated"):
+        return redirect(url_for("admin"))
+
+    error = None
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+
+        if check_password_hash(app.config["ADMIN_PASSWORD_HASH"], password):
+            session.clear()
+            session.permanent = True
+            session["authenticated"] = True
+
+            return redirect(url_for("admin"))
+
+        error = "Invalid password"
+
+    return render_template("login.html", error=error), 401 if error else 200
+
+@app.route("/admin")
+@require_login
+def admin():
+    return render_admin_page()
 
 @app.route("/logout", methods=["POST"])
 @require_login

@@ -596,3 +596,33 @@ def test_admin_empty_state_messages(client):
     assert response.status_code == 200
     assert b"No services match the selected filters." in response.data
     assert b"No services have been added yet." not in response.data
+
+def test_admin_validation_error_preserves_filter_options(client):
+    database.create_service(
+        "Existing Service",
+        "https://example.com",
+        host="Clanker",
+        deployment_type="docker",
+        runtime_name="Python"
+    )
+
+    admin_page = login_as_admin(client)
+
+    response = client.post(
+        "/admin/services",
+        data={
+            "csrf_token": extract_csrf_token(admin_page),
+            "name": "Invalid Service",
+            "url": "https://invalid.example.com",
+            "runtime_version": "3.14"
+        }
+    )
+
+    assert response.status_code == 400
+
+    html = response.get_data(as_text=True)
+
+    assert "Runtime name required" in html
+    assert 'value="Clanker"' in html
+    assert 'value="docker"' in html
+    assert 'value="Python"' in html
