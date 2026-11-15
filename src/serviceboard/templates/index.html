@@ -26,7 +26,21 @@
                         </p>
                     {% endif %}
 
-                    <p class="service-address">{{ service["url"] }}</p>
+                    {% if service["url"] %}
+                        <p class="service-address">
+                            <a href="{{ service['url'] }}" rel="noopener noreferrer">
+                                {{ service["url"] }}
+                            </a>
+                        </p>
+                    {% endif %}
+
+                    {% if service["project_url"] %}
+                        <p class="service-project">
+                            <a href="{{ service['project_url'] }}" rel="noopener noreferrer">
+                                Project / Source
+                            </a>
+                        </p>
+                    {% endif %}
                 </article>
             {% endfor %}
         </div>

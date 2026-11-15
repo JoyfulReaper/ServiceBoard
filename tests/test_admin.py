@@ -447,13 +447,15 @@ def test_admin_filters_by_host(client):
     database.create_service(
         "Search Service",
         "https://search.example.com",
-        host="Clanker"
+        host="Clanker",
+        is_public=True
     )
 
     database.create_service(
         "Matrix Service",
         "https://matrix.example.com",
-        host="Molasses"
+        host="Molasses",
+        is_public=True
     )
 
     database.create_service(
@@ -626,3 +628,104 @@ def test_admin_validation_error_preserves_filter_options(client):
     assert 'value="Clanker"' in html
     assert 'value="docker"' in html
     assert 'value="Python"' in html
+
+def test_admin_creates_private_job_without_endpoint(client):
+    admin_page = login_as_admin(client)
+
+    html = admin_page.get_data(as_text=True)
+
+    # Project URL field must exist.
+    assert 'name="project_url"' in html
+
+    # Service URL must be optional.
+    url_input = re.search(r'<input\b[^>]*id="url"[^>]*>', html)
+
+    assert url_input is not None
+    assert "required" not in url_input.group(0)
+
+    # New services must default to private.
+    visibility_input = re.search(
+        r'<input\b[^>]*id="is_public"[^>]*>',
+        html
+    )
+
+    assert visibility_input is not None
+    assert "checked" not in visibility_input.group(0)
+
+    response = client.post(
+        "/admin/services",
+        data={
+            "csrf_token": extract_csrf_token(admin_page),
+            "name": "VPS Backup",
+            "url": "",
+            "project_url": "https://github.com/JoyfulReaper/InfraOps",
+            "host": "ScopeCreep",
+            "deployment_type": "systemd"
+        }
+    )
+
+    assert response.status_code == 302
+
+    services = database.get_services()
+
+    assert len(services) == 1
+
+    service = services[0]
+
+    assert service["name"] == "VPS Backup"
+    assert service["url"] is None
+    assert service["project_url"] == "https://github.com/JoyfulReaper/InfraOps"
+    assert service["host"] == "ScopeCreep"
+    assert service["deployment_type"] == "systemd"
+    assert service["is_public"] is False
+
+def test_admin_edit_project_url_without_endpoint(client):
+    created = database.create_service(
+        "VPS Backup",
+        host="ScopeCreep",
+        deployment_type="systemd",
+        project_url="https://github.com/JoyfulReaper/InfraOps",
+        is_public=False
+    )
+
+    login_as_admin(client)
+
+    edit_url = f"/admin/services/{created['id']}/edit"
+    edit_page = client.get(edit_url)
+
+    assert edit_page.status_code == 200
+
+    html = edit_page.get_data(as_text=True)
+
+    # Existing project URL should be populated.
+    assert 'name="project_url"' in html
+    assert 'value="https://github.com/JoyfulReaper/InfraOps"' in html
+
+    # Missing service URLs should display as empty fields.
+    url_input = re.search(r'<input\b[^>]*id="url"[^>]*>', html)
+
+    assert url_input is not None
+    assert "required" not in url_input.group(0)
+    assert 'value="None"' not in url_input.group(0)
+
+    # Update the project URL.
+    response = client.post(
+        edit_url,
+        data={
+            "csrf_token": extract_csrf_token(edit_page),
+            "name": "VPS Backup",
+            "url": "",
+            "project_url": "https://github.com/JoyfulReaper/InfraOps/tree/main/VPS",
+            "host": "ScopeCreep",
+            "deployment_type": "systemd"
+        }
+    )
+
+    assert response.status_code == 302
+
+    updated = database.get_service(created["id"])
+
+    assert updated["url"] is None
+    assert updated["project_url"] == "https://github.com/JoyfulReaper/InfraOps/tree/main/VPS"
+    assert updated["host"] == "ScopeCreep"
+    assert updated["is_public"] is False

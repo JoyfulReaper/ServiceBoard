@@ -26,9 +26,15 @@
         </div>
 
         <div>
-            <label for="url">URL:</label>
+            <label for="url">URL (optional):</label>
             <input type="url" id="url" name="url"
-                   value="{{ service['url'] }}" required>
+                value="{{ service['url'] or '' }}">
+        </div>
+
+        <div>
+            <label for="project_url">Project URL (optional):</label>
+            <input type="url" id="project_url" name="project_url"
+                   value="{{ service['project_url'] or '' }}">
         </div>
 
         <div class="form-full-width">

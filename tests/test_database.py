@@ -269,3 +269,73 @@ def test_update_service_visibility(isolated_database):
     )
 
     assert updated["is_public"] is False
+
+def test_service_without_url_and_with_project_url(isolated_database):
+    created = database.create_service(
+        "VPS Backup",
+        host="ScopeCreep",
+        deployment_type="systemd",
+        project_url="https://github.com/JoyfulReaper/InfraOps"
+    )
+
+    assert created["url"] is None
+    assert created["project_url"] == "https://github.com/JoyfulReaper/InfraOps"
+    assert created["is_public"] is False
+
+    retrieved = database.get_service(created["id"])
+
+    assert retrieved == created
+
+def test_migration_makes_url_optional(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    with closing(sqlite3.connect("data.db")) as connection:
+        connection.execute("""
+            CREATE TABLE services (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                url TEXT NOT NULL
+            )
+        """)
+
+        connection.execute(
+            "INSERT INTO services (name, url) VALUES (?, ?)",
+            ("Existing Service", "https://example.com")
+        )
+
+        connection.commit()
+
+    database.initialize_database()
+
+    with closing(sqlite3.connect("data.db")) as connection:
+        columns = {
+            row[1]: row
+            for row in connection.execute("PRAGMA table_info(services)")
+        }
+
+    assert columns["url"][3] == 0
+    assert "project_url" in columns
+
+    existing = database.get_service(1)
+
+    assert existing["name"] == "Existing Service"
+    assert existing["url"] == "https://example.com"
+
+def test_update_project_url(isolated_database):
+    created = database.create_service(
+        "VPS Backup",
+        project_url="https://github.com/JoyfulReaper/InfraOps"
+    )
+
+    updated = database.update_service(
+        created["id"],
+        "VPS Backup",
+        project_url="https://github.com/JoyfulReaper/InfraOps/tree/main/VPS"
+    )
+
+    assert updated["url"] is None
+    assert updated["project_url"] == "https://github.com/JoyfulReaper/InfraOps/tree/main/VPS"
+    assert updated["is_public"] is False
+
+    retrieved = database.get_service(created["id"])
+    assert retrieved == updated

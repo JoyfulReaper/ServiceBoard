@@ -1,5 +1,33 @@
 from src.serviceboard import database
+import pytest
 
+@pytest.mark.parametrize(
+    ("field", "invalid_url"),
+    [
+        ("url", "javascript:alert(1)"),
+        ("url", "data:text/html,<script>alert(1)</script>"),
+        ("url", "https://"),
+        ("project_url", "javascript:alert(1)"),
+        ("project_url", "gemini://example.com")
+    ]
+)
+def test_api_rejects_invalid_urls(client, field, invalid_url):
+    payload = {
+        "name": "Invalid URL",
+        "url": "https://example.com",
+        "project_url": "https://github.com/JoyfulReaper/ServiceBoard"
+    }
+
+    payload[field] = invalid_url
+
+    response = client.post(
+        "/services",
+        json=payload,
+        headers={"Authorization": "Bearer test-api-key"}
+    )
+
+    assert response.status_code == 400
+    assert database.get_services() == []
 
 def test_public_services_hide_private_fields(client):
     created = database.create_service(
@@ -9,7 +37,8 @@ def test_public_services_hide_private_fields(client):
         "Microsoft.AspNetCore.App",
         "10.0.15",
         deployment_type="docker",
-        description="A test service"
+        description="A test service",
+        is_public=True
     )
 
     response = client.get("/services")
@@ -23,7 +52,8 @@ def test_public_services_hide_private_fields(client):
             "id": created["id"],
             "name": "Test Service",
             "url": "https://example.com",
-            "description": "A test service"
+            "description": "A test service",
+            "project_url": None
         }
     ]
 
@@ -267,7 +297,8 @@ def test_public_homepage_shows_description_without_private_fields(client):
         "SmolSearch",
         "https://example.com",
         host="PrivateHost123",
-        description="Searches Gemini and Gopher content"
+        description="Searches Gemini and Gopher content",
+        is_public=True
     )
 
     response = client.get("/")
@@ -280,7 +311,8 @@ def test_public_homepage_shows_description_without_private_fields(client):
 def test_private_services_hidden_from_public(client):
     public = database.create_service(
         "Public Service",
-        "https://public.example.com"
+        "https://public.example.com",
+        is_public=True
     )
 
     private = database.create_service(
@@ -404,3 +436,116 @@ def test_update_nonexistent_service_returns_404(client):
 
     assert response.status_code == 404
     assert response.get_json()["error"] == "Service not found"
+
+def test_api_create_private_service_without_endpoint(client):
+    headers = {"Authorization": "Bearer test-api-key"}
+
+    response = client.post(
+        "/services",
+        json={
+            "name": "ScopeCreep Backup",
+            "host": "ScopeCreep",
+            "deployment_type": "systemd",
+            "project_url": "https://github.com/JoyfulReaper/InfraOps"
+        },
+        headers=headers
+    )
+
+    assert response.status_code == 201
+
+    created = response.get_json()
+
+    assert created["url"] is None
+    assert created["project_url"] == "https://github.com/JoyfulReaper/InfraOps"
+    assert created["is_public"] is False
+
+    assert database.get_service(created["id"]) == created
+
+    public_response = client.get("/services")
+    assert public_response.get_json() == []
+
+    private_response = client.get(f"/services/{created['id']}")
+    assert private_response.status_code == 404
+
+    authorized_response = client.get(
+        f"/services/{created['id']}",
+        headers=headers
+    )
+
+    assert authorized_response.status_code == 200
+    assert authorized_response.get_json() == created
+
+def test_public_service_exposes_project_url(client):
+    created = database.create_service(
+        "HappyGopher",
+        "gopher://gopher.example.com",
+        host="Clanker",
+        deployment_type="docker",
+        project_url="https://github.com/JoyfulReaper/HappyGopher",
+        is_public=True
+    )
+
+    response = client.get("/services")
+
+    assert response.status_code == 200
+
+    services = response.get_json()
+    assert len(services) == 1
+
+    public_service = services[0]
+
+    assert public_service["id"] == created["id"]
+    assert public_service["name"] == "HappyGopher"
+    assert public_service["url"] == "gopher://gopher.example.com"
+    assert public_service["project_url"] == "https://github.com/JoyfulReaper/HappyGopher"
+
+    assert "host" not in public_service
+    assert "deployment_type" not in public_service
+    assert "runtime_name" not in public_service
+    assert "runtime_version" not in public_service
+
+def test_public_homepage_project_links_and_optional_urls(client):
+    database.create_service(
+        "HappyGopher",
+        "gopher://gopher.example.com",
+        project_url="https://github.com/JoyfulReaper/HappyGopher",
+        is_public=True
+    )
+
+    database.create_service(
+        "VPS Backup",
+        project_url="https://github.com/JoyfulReaper/InfraOps",
+        is_public=True
+    )
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+
+    html = response.get_data(as_text=True)
+
+    assert "HappyGopher" in html
+    assert "VPS Backup" in html
+
+    assert 'href="gopher://gopher.example.com"' in html
+    assert 'href="https://github.com/JoyfulReaper/HappyGopher"' in html
+    assert 'href="https://github.com/JoyfulReaper/InfraOps"' in html
+
+    assert '<p class="service-address">None</p>' not in html
+
+@pytest.mark.parametrize("scheme", ["gopher", "gemini"])
+def test_api_accepts_small_web_urls(client, scheme):
+    url = f"{scheme}://example.com"
+
+    response = client.post(
+        "/services",
+        json={
+            "name": "Small Web Service",
+            "url": url,
+            "is_public": True
+        },
+        headers={"Authorization": "Bearer test-api-key"}
+    )
+
+    assert response.status_code == 201
+    assert response.get_json()["url"] == url

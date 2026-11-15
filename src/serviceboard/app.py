@@ -6,6 +6,7 @@ from datetime import timedelta
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash
 from collections.abc import Mapping
+from urllib.parse import urlsplit
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ["SERVICEBOARD_SECRET_KEY"]
@@ -27,7 +28,8 @@ def public_service(service):
         "id": service["id"],
         "name": service["name"],
         "description": service["description"],
-        "url": service["url"]
+        "url": service["url"],
+        "project_url": service["project_url"],
     }
 
 def service_read_response(data):
@@ -60,23 +62,28 @@ def validate_service_fields(data):
         return None, "Invalid data format"
 
     name = data.get("name")
-    url = data.get("url")
 
-    if not isinstance(name, str) or not isinstance(url, str):
+    if not isinstance(name, str):
         return None, "Invalid data format"
 
     name = name.strip()
-    url = url.strip()
 
-    if not name or not url:
-        return None, "Service name and url required"
+    if not name:
+        return None, "Service name required"
 
-    fields = {
-        "name": name,
-        "url": url
-    }
+    fields = {"name": name}
 
-    for field in ("host", "deployment_type", "description", "runtime_name", "runtime_version"):
+    optional_fields = (
+        "url",
+        "project_url",
+        "host",
+        "deployment_type",
+        "description",
+        "runtime_name",
+        "runtime_version"
+    )
+
+    for field in optional_fields:
         value = data.get(field)
 
         if value is not None and not isinstance(value, str):
@@ -86,6 +93,32 @@ def validate_service_fields(data):
             value = value.strip() or None
 
         fields[field] = value
+
+    allowed_schemes = {
+        "url": {"http", "https", "gemini", "gopher"},
+        "project_url": {"http", "https"}
+    }
+
+    for field, schemes in allowed_schemes.items():
+        value = fields[field]
+
+        if value is None:
+            continue
+
+        try:
+            parsed = urlsplit(value)
+
+            valid = (
+                parsed.scheme in schemes
+                and bool(parsed.hostname)
+                and not any(character.isspace() for character in value)
+            )
+
+        except ValueError:
+            valid = False
+
+        if not valid:
+            return None, f"{field} must be a valid URL with an allowed scheme"
 
     if fields["runtime_version"] and not fields["runtime_name"]:
         return None, "Runtime name required when runtime version is provided"
@@ -205,6 +238,7 @@ def index():
         {
             "name": service["name"],
             "url": service["url"],
+            "project_url": service["project_url"],
             "description": service["description"]
         }
         for service in database.get_services()
