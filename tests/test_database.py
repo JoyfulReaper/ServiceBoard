@@ -339,3 +339,12 @@ def test_update_project_url(isolated_database):
 
     retrieved = database.get_service(created["id"])
     assert retrieved == updated
+
+def test_new_database_defaults_to_private(isolated_database):
+    with closing(sqlite3.connect("data.db")) as connection:
+        columns = {
+            row[1]: row
+            for row in connection.execute("PRAGMA table_info(services)")
+        }
+
+    assert columns["is_public"][4] == "0"

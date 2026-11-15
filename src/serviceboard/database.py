@@ -36,7 +36,7 @@ def initialize_database():
                    deployment_type TEXT,
                    runtime_name    TEXT,
                    runtime_version TEXT,
-                   is_public       INTEGER NOT NULL DEFAULT 1
+                   is_public       INTEGER NOT NULL DEFAULT 0
                )
                """)
 
