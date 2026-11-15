@@ -1027,3 +1027,81 @@ def test_login_page_uses_shared_layout(client):
     assert 'class="login-panel"' in html
     assert 'name="password"' in html
     assert 'name="csrf_token"' in html
+
+def test_admin_searches_services(client):
+    database.create_service(
+        "Redis Cache",
+        host="ScopeCreep",
+        description="Stores rate limiting data"
+    )
+
+    database.create_service(
+        "Matrix Synapse",
+        host="Molasses",
+        description="Federated messaging server"
+    )
+
+    login_as_admin(client)
+
+    # Search by service name (case-insensitive).
+    response = client.get("/admin?q=rEdIs")
+
+    assert response.status_code == 200
+    assert b"Redis Cache" in response.data
+    assert b"Matrix Synapse" not in response.data
+
+    # Search by description.
+    response = client.get("/admin?q=federated")
+
+    assert response.status_code == 200
+    assert b"Matrix Synapse" in response.data
+    assert b"Redis Cache" not in response.data
+
+    # Search with no matches.
+    response = client.get("/admin?q=nonexistentservice")
+
+    assert response.status_code == 200
+    assert b"No services match the selected filters." in response.data
+
+def test_admin_search_combines_with_filters(client):
+    database.create_service(
+        "Clanker Backup",
+        host="Clanker",
+        deployment_type="systemd",
+        is_public=False
+    )
+
+    database.create_service(
+        "Molasses Backup",
+        host="Molasses",
+        deployment_type="systemd",
+        is_public=False
+    )
+
+    database.create_service(
+        "Clanker Public Backup",
+        host="Clanker",
+        deployment_type="Docker",
+        is_public=True
+    )
+
+    login_as_admin(client)
+
+    response = client.get(
+        "/admin",
+        query_string={
+            "q": "backup",
+            "host": "Clanker",
+            "visibility": "private",
+            "deployment": "systemd"
+        }
+    )
+
+    assert response.status_code == 200
+
+    assert b"Clanker Backup" in response.data
+    assert b"Molasses Backup" not in response.data
+    assert b"Clanker Public Backup" not in response.data
+
+    # The search term should remain in the search box.
+    assert b'value="backup"' in response.data

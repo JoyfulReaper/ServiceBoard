@@ -241,6 +241,28 @@ def render_admin_page(**extra_context):
             if service["runtime_name"] == selected_runtime
         ]
 
+    selected_query = request.args.get("q", "").strip()
+
+    if selected_query:
+        search_term = selected_query.casefold()
+
+        search_fields = (
+            "name",
+            "description",
+            "host",
+            "deployment_type",
+            "runtime_name",
+            "runtime_version"
+        )
+
+        services = [
+            service for service in services
+            if any(
+                search_term in (service[field] or "").casefold()
+                for field in search_fields
+            )
+        ]
+
     services = sorted(
         services,
         key=lambda service: (
@@ -262,6 +284,7 @@ def render_admin_page(**extra_context):
         selected_runtime=selected_runtime,
         selected_deployment=selected_deployment,
         has_any_services=has_any_services,
+        selected_query=selected_query,
         **extra_context
     )
 

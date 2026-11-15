@@ -391,7 +391,8 @@ main.container {
     font-weight: 600;
 }
 
-.service-controls select {
+.service-controls select,
+.service-controls input[type="search"] {
     min-width: 180px;
     padding: 0.65rem;
     background: var(--surface);
@@ -399,6 +400,11 @@ main.container {
     border: 1px solid var(--border);
     border-radius: 6px;
     font: inherit;
+}
+
+.service-controls input[type="search"] {
+    flex: 1 1 220px;
+    max-width: 350px;
 }
 
 .service-controls button {

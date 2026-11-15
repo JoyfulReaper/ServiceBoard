@@ -91,6 +91,16 @@
     <h2>Services</h2>
 
     <form class="service-controls" method="GET" action="{{ url_for('admin') }}">
+        <label for="service-search">Search:</label>
+
+        <input
+            type="search"
+            id="service-search"
+            name="q"
+            value="{{ selected_query }}"
+            placeholder="Search services..."
+        >
+
         <label for="sort">Sort by:</label>
 
         <select id="sort" name="sort">
