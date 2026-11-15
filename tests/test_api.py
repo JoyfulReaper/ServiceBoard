@@ -391,3 +391,16 @@ def test_api_rejects_invalid_visibility(client):
     assert response.get_json()["error"] == "is_public must be a boolean"
 
     assert database.get_services() == []
+
+def test_update_nonexistent_service_returns_404(client):
+    response = client.put(
+        "/services/999999",
+        json={
+            "name": "Missing Service",
+            "url": "https://example.com"
+        },
+        headers={"Authorization": "Bearer test-api-key"}
+    )
+
+    assert response.status_code == 404
+    assert response.get_json()["error"] == "Service not found"

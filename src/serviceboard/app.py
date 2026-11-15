@@ -153,7 +153,7 @@ def update_service(service_id):
 
     service = database.update_service(service_id, **fields)
     if service is None:
-        return { "error": "Service not found"}
+        return { "error": "Service not found"}, 404
 
     return jsonify(service)
 
