@@ -1,18 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Edit Service - ServiceBoard</title>
-</head>
-<body>
-    <h1>Edit Service</h1>
+{% extends "base.html" %}
+
+{% block title %}Edit {{ service["name"] }} | ServiceBoard{% endblock %}
+
+{% block content %}
+
+<section class="page-intro">
+    <p class="eyebrow">Administration</p>
+    <h1>Edit {{ service["name"] }}</h1>
+    <p class="intro-text">
+        Update the details and visibility of this service.
+    </p>
+</section>
 
     {% if error %}
         <p role="alert">{{ error }}</p>
     {% endif %}
 
-    <form method="POST">
+    <form class="service-form" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div>
@@ -27,7 +31,7 @@
                    value="{{ service['url'] }}" required>
         </div>
 
-        <div>
+        <div class="form-full-width">
             <label for="description">Description:</label>
             <textarea id="description" name="description" rows="3">{{ service["description"] or "" }}</textarea>
         </div>
@@ -64,7 +68,7 @@
                    value="{{ service['runtime_version'] or '' }}">
         </div>
 
-        <div>
+        <div class="form-full-width">
             <label for="is_public">
                 <input type="checkbox" id="is_public" name="is_public"
                        {% if form_is_public|default(service["is_public"]) %}checked{% endif %}>
@@ -74,9 +78,8 @@
 
         <button type="submit">Save Changes</button>
     </form>
+<p>
+    <a href="{{ url_for('admin') }}">← Back to administration</a>
+</p>
 
-    <p>
-        <a href="{{ url_for('admin') }}">Cancel</a>
-    </p>
-</body>
-</html>
+{% endblock %}

@@ -105,6 +105,61 @@
             </option>
         </select>
 
+        <label for="visibility">Visibility:</label>
+
+        <select id="visibility" name="visibility">
+            <option value="all" {% if selected_visibility == "all" %}selected{% endif %}>
+                All Services
+            </option>
+
+            <option value="public" {% if selected_visibility == "public" %}selected{% endif %}>
+                Public
+            </option>
+
+            <option value="private" {% if selected_visibility == "private" %}selected{% endif %}>
+                Private
+            </option>
+        </select>
+
+        <label for="host-filter">Host:</label>
+
+        <select id="host-filter" name="host">
+            <option value="">All Hosts</option>
+
+            {% for host in hosts %}
+                <option value="{{ host }}"
+                        {% if selected_host == host %}selected{% endif %}>
+                    {{ host }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="deployment-filter">Deployment:</label>
+
+        <select id="deployment-filter" name="deployment">
+            <option value="">All Types</option>
+
+            {% for deployment in deployment_types %}
+                <option value="{{ deployment }}"
+                        {% if selected_deployment == deployment %}selected{% endif %}>
+                    {{ deployment }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="runtime-filter">Runtime:</label>
+
+        <select id="runtime-filter" name="runtime">
+            <option value="">All Runtimes</option>
+
+            {% for runtime in runtimes %}
+                <option value="{{ runtime }}"
+                        {% if selected_runtime == runtime %}selected{% endif %}>
+                    {{ runtime }}
+                </option>
+            {% endfor %}
+        </select>
+
         <button type="submit">Apply</button>
     </form>
 
@@ -173,7 +228,13 @@
         </article>
     {% endfor %}
 </div>
-    {% else %}
+{% elif has_any_services %}
+    <div class="empty-state">
+        <p>No services match the selected filters.</p>
+    </div>
+{% else %}
+    <div class="empty-state">
         <p>No services have been added yet.</p>
-    {% endif %}
+    </div>
+{% endif %}
 {% endblock %}

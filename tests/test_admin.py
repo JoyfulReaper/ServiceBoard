@@ -358,3 +358,241 @@ def test_admin_displays_visibility_badges(client):
     assert response.status_code == 200
     assert b"visibility-public" in response.data
     assert b"visibility-private" in response.data
+
+def test_edit_page_uses_shared_layout(client):
+    created = database.create_service(
+        "Test Service",
+        "https://example.com",
+        is_public=False
+    )
+
+    login_as_admin(client)
+
+    response = client.get(
+        f"/admin/services/{created['id']}/edit"
+    )
+
+    assert response.status_code == 200
+
+    html = response.get_data(as_text=True)
+
+    assert "site-header" in html
+    assert "style.css" in html
+    assert "Edit Test Service" in html
+    assert 'class="service-form"' in html
+    assert 'name="csrf_token"' in html
+    assert 'name="is_public"' in html
+
+def test_delete_page_uses_shared_layout(client):
+    created = database.create_service(
+        "Test Service",
+        "https://example.com"
+    )
+
+    login_as_admin(client)
+
+    response = client.get(
+        f"/admin/services/{created['id']}/delete"
+    )
+
+    assert response.status_code == 200
+
+    html = response.get_data(as_text=True)
+
+    assert "site-header" in html
+    assert "style.css" in html
+    assert "Delete Service" in html
+    assert "Test Service" in html
+    assert 'name="csrf_token"' in html
+    assert 'class="danger-button"' in html
+    assert "Cancel" in html
+
+def test_admin_filters_by_visibility(client):
+    database.create_service(
+        "Alpha Service",
+        "https://alpha.example.com",
+        is_public=True
+    )
+
+    database.create_service(
+        "Beta Service",
+        "https://beta.example.com",
+        is_public=False
+    )
+
+    login_as_admin(client)
+
+    # Show private services.
+    response = client.get("/admin?visibility=private")
+
+    assert response.status_code == 200
+    assert b"Beta Service" in response.data
+    assert b"Alpha Service" not in response.data
+
+    # Show public services.
+    response = client.get("/admin?visibility=public")
+
+    assert response.status_code == 200
+    assert b"Alpha Service" in response.data
+    assert b"Beta Service" not in response.data
+
+    # Show everything.
+    response = client.get("/admin?visibility=all")
+
+    assert response.status_code == 200
+    assert b"Alpha Service" in response.data
+    assert b"Beta Service" in response.data
+
+def test_admin_filters_by_host(client):
+    database.create_service(
+        "Search Service",
+        "https://search.example.com",
+        host="Clanker"
+    )
+
+    database.create_service(
+        "Matrix Service",
+        "https://matrix.example.com",
+        host="Molasses"
+    )
+
+    database.create_service(
+        "Backup Service",
+        "https://backup.example.com",
+        host="Clanker",
+        is_public=False
+    )
+
+    login_as_admin(client)
+
+    # Filter by Clanker.
+    response = client.get("/admin?host=Clanker")
+
+    assert response.status_code == 200
+    assert b"Search Service" in response.data
+    assert b"Backup Service" in response.data
+    assert b"Matrix Service" not in response.data
+
+    # Combine host and visibility filters.
+    response = client.get("/admin?host=Clanker&visibility=private")
+
+    assert response.status_code == 200
+    assert b"Backup Service" in response.data
+    assert b"Search Service" not in response.data
+
+    # All hosts.
+    response = client.get("/admin")
+
+    assert response.status_code == 200
+    assert b"Search Service" in response.data
+    assert b"Matrix Service" in response.data
+    assert b"Backup Service" in response.data
+
+def test_admin_filters_by_deployment_type(client):
+    database.create_service(
+        "Docker Service",
+        "https://docker.example.com",
+        host="Clanker",
+        deployment_type="docker"
+    )
+
+    database.create_service(
+        "Systemd Service",
+        "https://systemd.example.com",
+        host="Clanker",
+        deployment_type="systemd"
+    )
+
+    database.create_service(
+        "Other Docker Service",
+        "https://other.example.com",
+        host="Molasses",
+        deployment_type="docker"
+    )
+
+    login_as_admin(client)
+
+    # Only systemd services.
+    response = client.get("/admin?deployment=systemd")
+
+    assert response.status_code == 200
+    assert b"Systemd Service" in response.data
+    assert b"Docker Service" not in response.data
+    assert b"Other Docker Service" not in response.data
+
+    # Combine deployment and host filters.
+    response = client.get("/admin?deployment=docker&host=Clanker")
+
+    assert response.status_code == 200
+    assert b"Docker Service" in response.data
+    assert b"Systemd Service" not in response.data
+    assert b"Other Docker Service" not in response.data
+
+def test_admin_filters_by_runtime(client):
+    database.create_service(
+        "ASP.NET Service",
+        "https://dotnet.example.com",
+        host="Clanker",
+        runtime_name="Microsoft.AspNetCore.App",
+        runtime_version="10.0.15",
+        deployment_type="docker"
+    )
+
+    database.create_service(
+        "Flask Service",
+        "https://flask.example.com",
+        host="Clanker",
+        runtime_name="Python",
+        runtime_version="3.14.6",
+        deployment_type="systemd"
+    )
+
+    database.create_service(
+        "Another Python Service",
+        "https://python.example.com",
+        host="Molasses",
+        runtime_name="Python",
+        runtime_version="3.14.6",
+        deployment_type="docker"
+    )
+
+    login_as_admin(client)
+
+    # Filter by Python.
+    response = client.get("/admin?runtime=Python")
+
+    assert response.status_code == 200
+    assert b"Flask Service" in response.data
+    assert b"Another Python Service" in response.data
+    assert b"ASP.NET Service" not in response.data
+
+    # Combine runtime and deployment filters.
+    response = client.get("/admin?runtime=Python&deployment=docker")
+
+    assert response.status_code == 200
+    assert b"Another Python Service" in response.data
+    assert b"Flask Service" not in response.data
+    assert b"ASP.NET Service" not in response.data
+
+def test_admin_empty_state_messages(client):
+    login_as_admin(client)
+
+    # No services exist.
+    response = client.get("/admin")
+
+    assert response.status_code == 200
+    assert b"No services have been added yet." in response.data
+
+    # Add one public service.
+    database.create_service(
+        "Test Service",
+        "https://example.com",
+        is_public=True
+    )
+
+    # Filter for private services, producing zero matches.
+    response = client.get("/admin?visibility=private")
+
+    assert response.status_code == 200
+    assert b"No services match the selected filters." in response.data
+    assert b"No services have been added yet." not in response.data

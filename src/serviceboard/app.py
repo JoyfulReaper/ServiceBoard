@@ -270,8 +270,69 @@ def admin():
 
     sort_field = sort_fields[sort_by]
 
+    visibility = request.args.get("visibility", "all")
+
+    if visibility not in ("all", "public", "private"):
+        visibility = "all"
+
+    services = database.get_services()
+    has_any_services = bool(services)
+
+    hosts = sorted(
+        {service["host"] for service in services if service["host"]},
+        key=str.casefold
+    )
+
+    deployment_types = sorted(
+        {service["deployment_type"] for service in services if service["deployment_type"]},
+        key=str.casefold
+    )
+
+    runtimes = sorted(
+        {service["runtime_name"] for service in services if service["runtime_name"]},
+        key=str.casefold
+    )
+
+    selected_runtime = request.args.get("runtime", "")
+
+    if selected_runtime not in runtimes:
+        selected_runtime = ""
+
+    selected_host = request.args.get("host", "")
+
+    if selected_host not in hosts:
+        selected_host = ""
+
+    if selected_host:
+        services = [
+            service for service in services
+            if service["host"] == selected_host
+        ]
+
+    selected_deployment = request.args.get("deployment", "")
+
+    if selected_deployment not in deployment_types:
+        selected_deployment = ""
+
+    if visibility == "public":
+        services = [service for service in services if service["is_public"]]
+    elif visibility == "private":
+        services = [service for service in services if not service["is_public"]]
+
+    if selected_deployment:
+        services = [
+            service for service in services
+            if service["deployment_type"] == selected_deployment
+        ]
+
+    if selected_runtime:
+        services = [
+            service for service in services
+            if service["runtime_name"] == selected_runtime
+        ]
+
     services = sorted(
-        database.get_services(),
+        services,
         key=lambda service: (
             service[sort_field] is None,
             (service[sort_field] or "").casefold(),
@@ -279,7 +340,19 @@ def admin():
         )
     )
 
-    return render_template("admin.html", services=services)
+    return render_template(
+        "admin.html",
+        services=services,
+        hosts=hosts,
+        selected_host=selected_host,
+        selected_sort=sort_by,
+        selected_visibility=visibility,
+        deployment_types=deployment_types,
+        runtimes=runtimes,
+        selected_runtime=selected_runtime,
+        selected_deployment=selected_deployment,
+        has_any_services=has_any_services,
+    )
 
 @app.route("/logout", methods=["POST"])
 @require_login

@@ -437,3 +437,36 @@ main.container {
     background: #443321;
     border: 1px solid #78583b;
 }
+
+/* Delete confirmation */
+
+.delete-confirmation {
+    max-width: 680px;
+    padding: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.delete-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.danger-button {
+    padding: 0.75rem 1.25rem;
+    background: #b84c4c;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.danger-button:hover {
+    background: #d05f5f;
+}
