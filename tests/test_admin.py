@@ -729,3 +729,208 @@ def test_admin_edit_project_url_without_endpoint(client):
     assert updated["project_url"] == "https://github.com/JoyfulReaper/InfraOps/tree/main/VPS"
     assert updated["host"] == "ScopeCreep"
     assert updated["is_public"] is False
+
+def test_login_rate_limited_after_five_failures(client):
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page)
+
+    # Five incorrect passwords should be rejected normally.
+    for attempt in range(5):
+        response = client.post(
+            "/login",
+            data={
+                "password": "incorrect-password",
+                "csrf_token": csrf_token
+            }
+        )
+
+        assert response.status_code == 401, f"Attempt {attempt + 1}"
+
+    # Even the correct password must be blocked during the cooldown.
+    response = client.post(
+        "/login",
+        data={
+            "password": "test-password",
+            "csrf_token": csrf_token
+        }
+    )
+
+    assert response.status_code == 429
+
+    # The login page itself should remain accessible.
+    assert client.get("/login").status_code == 200
+
+def test_login_rate_limit_is_per_ip(client):
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page)
+
+    # First IP exhausts its allowance.
+    for _ in range(5):
+        response = client.post(
+            "/login",
+            data={
+                "password": "incorrect-password",
+                "csrf_token": csrf_token
+            },
+            environ_overrides={"REMOTE_ADDR": "192.0.2.10"}
+        )
+
+        assert response.status_code == 401
+
+    # The first IP is now blocked, even with the correct password.
+    response = client.post(
+        "/login",
+        data={
+            "password": "test-password",
+            "csrf_token": csrf_token
+        },
+        environ_overrides={"REMOTE_ADDR": "192.0.2.10"}
+    )
+
+    assert response.status_code == 429
+
+    # A different IP can still authenticate.
+    response = client.post(
+        "/login",
+        data={
+            "password": "test-password",
+            "csrf_token": csrf_token
+        },
+        environ_overrides={"REMOTE_ADDR": "192.0.2.11"}
+    )
+
+    assert response.status_code == 302
+
+def test_successful_logins_do_not_count_toward_rate_limit(client):
+    for _ in range(6):
+        login_page = client.get("/login")
+
+        response = client.post(
+            "/login",
+            data={
+                "password": "test-password",
+                "csrf_token": extract_csrf_token(login_page)
+            }
+        )
+
+        assert response.status_code == 302
+        assert response.headers["Location"].endswith("/admin")
+
+        # Log out so the next iteration performs another real login.
+        admin_page = client.get("/admin")
+
+        response = client.post(
+            "/logout",
+            data={
+                "csrf_token": extract_csrf_token(admin_page)
+            }
+        )
+
+        assert response.status_code == 302
+
+def test_cloudflare_tunnel_rate_limits_by_visitor_ip(client, monkeypatch):
+    monkeypatch.setitem(client.application.config, "TRUST_CLOUDFLARE_IP", True)
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page)
+
+    # Visitor A sends five incorrect passwords through the local tunnel.
+    for _ in range(5):
+        response = client.post(
+            "/login",
+            data={
+                "password": "incorrect-password",
+                "csrf_token": csrf_token
+            },
+            headers={"CF-Connecting-IP": "198.51.100.10"},
+            environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+        )
+
+        assert response.status_code == 401
+
+    # Visitor B uses the same tunnel but has a different public IP.
+    response = client.post(
+        "/login",
+        data={
+            "password": "test-password",
+            "csrf_token": csrf_token
+        },
+        headers={"CF-Connecting-IP": "198.51.100.11"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+    )
+
+    assert response.status_code == 302
+
+def test_cloudflare_header_ignored_for_untrusted_connections(client, monkeypatch):
+    monkeypatch.setitem(client.application.config, "TRUST_CLOUDFLARE_IP", True)
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page)
+
+    # Attacker sends five incorrect passwords from one connection IP.
+    # Each request claims a different Cloudflare visitor IP.
+    for attempt in range(5):
+        response = client.post(
+            "/login",
+            data={
+                "password": "incorrect-password",
+                "csrf_token": csrf_token
+            },
+            headers={"CF-Connecting-IP": f"198.51.100.{attempt + 10}"},
+            environ_overrides={"REMOTE_ADDR": "203.0.113.50"}
+        )
+
+        assert response.status_code == 401
+
+    # Another forged header must not bypass the exhausted allowance.
+    response = client.post(
+        "/login",
+        data={
+            "password": "test-password",
+            "csrf_token": csrf_token
+        },
+        headers={"CF-Connecting-IP": "198.51.100.99"},
+        environ_overrides={"REMOTE_ADDR": "203.0.113.50"}
+    )
+
+    assert response.status_code == 429
+
+def test_invalid_cloudflare_ips_fall_back_to_connection_ip(client, monkeypatch):
+    monkeypatch.setitem(client.application.config, "TRUST_CLOUDFLARE_IP", True)
+
+    login_page = client.get("/login")
+    csrf_token = extract_csrf_token(login_page)
+
+    invalid_ips = [
+        "not-an-ip",
+        "999.999.999.999",
+        "198.51.100.10, 203.0.113.20",
+        "",
+        "invalid-address"
+    ]
+
+    for invalid_ip in invalid_ips:
+        response = client.post(
+            "/login",
+            data={
+                "password": "incorrect-password",
+                "csrf_token": csrf_token
+            },
+            headers={"CF-Connecting-IP": invalid_ip},
+            environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+        )
+
+        assert response.status_code == 401
+
+    # All five attempts should have used the same fallback IP.
+    response = client.post(
+        "/login",
+        data={
+            "password": "test-password",
+            "csrf_token": csrf_token
+        },
+        headers={"CF-Connecting-IP": "still-invalid"},
+        environ_overrides={"REMOTE_ADDR": "127.0.0.1"}
+    )
+
+    assert response.status_code == 429

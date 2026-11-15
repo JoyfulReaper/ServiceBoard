@@ -27,5 +27,7 @@ def client(tmp_path, monkeypatch):
         SESSION_COOKIE_SECURE=False
     )
 
+    app_module.limiter.reset()
+
     with app_module.app.test_client() as test_client:
         yield test_client

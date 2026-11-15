@@ -7,6 +7,10 @@ from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash
 from collections.abc import Mapping
 from urllib.parse import urlsplit
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from ipaddress import ip_address
+from flask import current_app
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ["SERVICEBOARD_SECRET_KEY"]
@@ -19,9 +23,38 @@ app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SERVICEBOARD_ALLOW_INSECUR
 
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 
+app.config["TRUST_CLOUDFLARE_IP"] = os.environ.get("SERVICEBOARD_TRUST_CLOUDFLARE_IP") == "1"
+
+app.config["RATELIMIT_STORAGE_URI"] = os.environ.get(
+    "SERVICEBOARD_RATE_LIMIT_STORAGE_URI",
+    "memory://"
+)
+
 csrf = CSRFProtect(app)
 
 database.initialize_database()
+
+def get_client_ip():
+    remote_ip = get_remote_address()
+
+    if not current_app.config.get("TRUST_CLOUDFLARE_IP", False):
+        return remote_ip
+
+    # Only trust forwarded headers from a local proxy.
+    if remote_ip not in ("127.0.0.1", "::1"):
+        return remote_ip
+
+    forwarded_ip = request.headers.get("CF-Connecting-IP")
+
+    try:
+        return str(ip_address(forwarded_ip))
+    except (ValueError, TypeError):
+        return remote_ip
+
+limiter = Limiter(
+    key_func=get_client_ip,
+    app=app
+)
 
 def public_service(service):
     return {
@@ -365,6 +398,11 @@ def admin_delete_service(service_id):
     return render_template("delete_service.html", service=service)
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit(
+    "5 per 15 minutes",
+    methods=["POST"],
+    deduct_when=lambda response: response.status_code == 401
+)
 def login():
     if session.get("authenticated"):
         return redirect(url_for("admin"))
