@@ -183,7 +183,9 @@
                         <span class="visibility-badge visibility-private">Private</span>
                     {% endif %}
 
-                    <p class="service-address">{{ service["url"] }}</p>
+                    {% if service["url"] %}
+                        <p class="service-address">{{ service["url"] }}</p>
+                    {% endif %}
                 </div>
 
                 <div class="admin-service-actions">
@@ -216,6 +218,19 @@
                     <div>
                         <dt>Deployment</dt>
                         <dd>{{ service["deployment_type"] }}</dd>
+                    </div>
+                {% endif %}
+
+                {% if service["project_url"] %}
+                    <div>
+                        <dt>Project URL</dt>
+                        <dd>
+                            <a href="{{ service['project_url'] }}"
+                               target="_blank"
+                               rel="noopener noreferrer">
+                                {{ service["project_url"] }}
+                            </a>
+                        </dd>
                     </div>
                 {% endif %}
 

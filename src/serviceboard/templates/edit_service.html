@@ -12,6 +12,14 @@
     </p>
 </section>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <p class="form-feedback form-feedback-{{ category }}" role="status">
+                {{ message }}
+            </p>
+        {% endfor %}
+    {% endwith %}
+
     {% if error %}
         <p role="alert">{{ error }}</p>
     {% endif %}
@@ -84,8 +92,22 @@
 
         <button type="submit">Save Changes</button>
     </form>
-<p>
-    <a href="{{ url_for('admin') }}">← Back to administration</a>
-</p>
+    <nav class="edit-navigation" aria-label="Service navigation">
+        {% if previous_id is not none %}
+            <a href="{{ url_for('admin_edit_service', service_id=previous_id) }}">
+                &larr; Previous
+            </a>
+        {% endif %}
+
+        <a href="{{ url_for('admin') }}">
+            Back to Administration
+        </a>
+
+        {% if next_id is not none %}
+            <a href="{{ url_for('admin_edit_service', service_id=next_id) }}">
+                Next &rarr;
+            </a>
+        {% endif %}
+    </nav>
 
 {% endblock %}

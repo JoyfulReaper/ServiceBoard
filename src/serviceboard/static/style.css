@@ -470,3 +470,99 @@ main.container {
 .danger-button:hover {
     background: #d05f5f;
 }
+
+/* Login */
+
+.login-panel {
+    width: min(100%, 440px);
+    margin: 3rem auto;
+    padding: 2rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.login-panel h1 {
+    margin: 0.5rem 0;
+}
+
+.login-panel .intro-text {
+    font-size: 1rem;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.login-form label {
+    font-weight: 600;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font: inherit;
+}
+
+.login-form button {
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.login-form button:hover {
+    background: #8be0c7;
+}
+
+.login-error {
+    padding: 0.75rem 1rem;
+    color: #ffb4b4;
+    background: #442626;
+    border: 1px solid #8b4444;
+    border-radius: 6px;
+}
+
+/* Edit navigation */
+
+.edit-navigation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.edit-navigation a {
+    padding: 0.65rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.edit-navigation a:hover {
+    border-color: var(--accent);
+    text-decoration: none;
+}
+
+/* Save confirmation */
+
+.form-feedback-success {
+    padding: 0.75rem 1rem;
+    color: var(--accent);
+    background: #173c35;
+    border: 1px solid #326b5c;
+    border-radius: 6px;
+}

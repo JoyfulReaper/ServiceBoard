@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, redirect, render_template, session, url_for
+from flask import Flask, jsonify, request, redirect, render_template, session, url_for, flash
 from .auth import require_api_key, require_login, is_valid_api_key
 from . import database
 import os
@@ -360,6 +360,14 @@ def admin_edit_service(service_id):
     if service is None:
         return "Service not found", 404
 
+    # Determine Previous/Next services by ID.
+    service_ids = sorted(item["id"] for item in database.get_services())
+
+    current_index = service_ids.index(service_id)
+
+    previous_id = service_ids[current_index - 1] if current_index > 0 else None
+    next_id = service_ids[current_index + 1] if current_index < len(service_ids) - 1 else None
+
     if request.method == "POST":
         form_data = request.form.to_dict()
         form_data["is_public"] = "is_public" in request.form
@@ -371,14 +379,23 @@ def admin_edit_service(service_id):
                 "edit_service.html",
                 service=service,
                 form_is_public=form_data["is_public"],
-                error=error
+                error=error,
+                previous_id=previous_id,
+                next_id=next_id
             ), 400
 
         database.update_service(service_id, **fields)
 
-        return redirect(url_for("admin"))
+        flash("Changes saved successfully.", "success")
 
-    return render_template("edit_service.html", service=service)
+        return redirect(url_for("admin_edit_service", service_id=service_id))
+
+    return render_template(
+        "edit_service.html",
+        service=service,
+        previous_id=previous_id,
+        next_id=next_id
+    )
 
 @app.route("/admin/services/<int:service_id>/delete", methods=["GET", "POST"])
 @require_login

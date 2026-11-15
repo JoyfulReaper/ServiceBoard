@@ -1,24 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>ServiceBoard Login</title>
-</head>
-<body>
-    <h1>ServiceBoard Login</h1>
+{% extends "base.html" %}
+
+{% block title %}Admin Login | ServiceBoard{% endblock %}
+
+{% block content %}
+
+<section class="login-panel">
+    <p class="eyebrow">Administration</p>
+
+    <h1>Sign In</h1>
+
+    <p class="intro-text">
+        Sign in to manage your service directory.
+    </p>
 
     {% if error %}
-        <p role="alert">{{ error }}</p>
+        <p class="login-error" role="alert">{{ error }}</p>
     {% endif %}
 
-    <form method="POST" action="{{ url_for('login') }}">
+    <form class="login-form" method="POST" action="{{ url_for('login') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
+        <label for="password">Password</label>
 
-        <button type="submit">Login</button>
+        <input type="password"
+               id="password"
+               name="password"
+               autocomplete="current-password"
+               required>
+
+        <button type="submit">Sign In</button>
     </form>
-</body>
-</html>
+</section>
+
+{% endblock %}
