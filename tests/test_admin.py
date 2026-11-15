@@ -934,3 +934,96 @@ def test_invalid_cloudflare_ips_fall_back_to_connection_ip(client, monkeypatch):
     )
 
     assert response.status_code == 429
+
+def test_admin_edit_save_stays_on_edit_page(client):
+    created = database.create_service("Original Service")
+
+    login_as_admin(client)
+
+    edit_url = f"/admin/services/{created['id']}/edit"
+    edit_page = client.get(edit_url)
+
+    response = client.post(
+        edit_url,
+        data={
+            "csrf_token": extract_csrf_token(edit_page),
+            "name": "Updated Service"
+        }
+    )
+
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(edit_url)
+
+    saved_page = client.get(edit_url)
+
+    assert saved_page.status_code == 200
+    assert b"Changes saved successfully." in saved_page.data
+    assert database.get_service(created["id"])["name"] == "Updated Service"
+
+    # Flash messages should only appear once.
+    second_visit = client.get(edit_url)
+
+    assert b"Changes saved successfully." not in second_visit.data
+
+def test_admin_edit_previous_next_navigation(client):
+    first = database.create_service("First Service")
+    removed = database.create_service("Removed Service")
+    middle = database.create_service("Middle Service")
+    last = database.create_service("Last Service")
+
+    database.delete_service(removed["id"])
+
+    login_as_admin(client)
+
+    middle_page = client.get(
+        f"/admin/services/{middle['id']}/edit"
+    ).get_data(as_text=True)
+
+    assert f'/admin/services/{first["id"]}/edit' in middle_page
+    assert f'/admin/services/{last["id"]}/edit' in middle_page
+
+    # Deleted IDs must be skipped.
+    assert f'/admin/services/{removed["id"]}/edit' not in middle_page
+
+    first_page = client.get(
+        f"/admin/services/{first['id']}/edit"
+    ).get_data(as_text=True)
+
+    assert "Previous" not in first_page
+
+    last_page = client.get(
+        f"/admin/services/{last['id']}/edit"
+    ).get_data(as_text=True)
+
+    assert "Next" not in last_page
+
+def test_admin_displays_project_url(client):
+    database.create_service(
+        "ServiceBoard",
+        project_url="https://github.com/JoyfulReaper/ServiceBoard",
+        is_public=False
+    )
+
+    login_as_admin(client)
+
+    response = client.get("/admin")
+
+    assert response.status_code == 200
+
+    html = response.get_data(as_text=True)
+
+    assert 'href="https://github.com/JoyfulReaper/ServiceBoard"' in html
+    assert 'rel="noopener noreferrer"' in html
+
+
+def test_login_page_uses_shared_layout(client):
+    response = client.get("/login")
+
+    assert response.status_code == 200
+
+    html = response.get_data(as_text=True)
+
+    assert "style.css" in html
+    assert 'class="login-panel"' in html
+    assert 'name="password"' in html
+    assert 'name="csrf_token"' in html
